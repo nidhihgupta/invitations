@@ -4,5 +4,5 @@
  * and emails go to a pretend outbox instead of being sent.
  */
 window.Config = {
-  API_URL: ''
+  API_URL: 'https://script.google.com/macros/s/AKfycbw5iiRxmL-vY3rXyGHyThkVajJrbK2IhdOmQLyIoMJO7ufgebYRZgnJGt15gUA7WJ2m/exec'
 };
