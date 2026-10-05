@@ -20,9 +20,9 @@
 <script src="../themes/registry.js"></script>
 <script>
   var q = new URLSearchParams(location.search);
-  var ev = { colors: { ground: q.get('ground'), accent: q.get('accent') } };
-  Themes.load(q.get('theme') || 'diwali').then(function (theme) {
-    document.body.className = q.get('mode') + ' t-' + theme.id;
+  var ev = { theme: q.get('theme') || 'diwali', template: q.get('template') || '', colors: { ground: q.get('ground'), accent: q.get('accent') } };
+  Themes.load(ev.theme).then(function (theme) {
+    document.body.className = q.get('mode') + ' ' + Themes.classes(ev);
     document.body.setAttribute('style', Themes.vars(ev));
     document.getElementById('stage').innerHTML = theme.envelope(ev, 'you');
     return document.fonts.ready;

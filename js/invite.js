@@ -46,7 +46,7 @@
   }
 
   function applyTheme(theme, ev) {
-    document.body.className = 'guest t-' + theme.id;
+    document.body.className = 'guest ' + Themes.classes(ev || { theme: theme.id });
     document.body.setAttribute('style', Themes.vars(ev));
   }
 

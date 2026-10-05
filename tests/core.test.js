@@ -154,7 +154,7 @@ test('sending: email vs text-only, once per day, invite tracking', () => {
   assert.deepStrictEqual([r.sent, r.textOnly.length], [1, 1]);
   const mail = t.sent[0];
   assert.strictEqual(mail.subject, 'You’re invited: A Diwali Evening'.replace('’', "'"));
-  assert.match(mail.html, /envelope-1-1\.png/, 'email image follows the chosen colors');
+  assert.match(mail.html, /envelope-night-1-1\.png/, 'email image follows the chosen colors');
   assert.match(mail.html, /Dear Priya,/);
   assert.match(mail.html, /kindly reply by Saturday, October 31/);
   assert.match(mail.html, /diwali\.html\?e=/);
@@ -218,6 +218,25 @@ test('duplicate with guests resets replies', () => {
   assert.strictEqual(ev.guests.length, 1);
   assert.strictEqual(ev.guests[0].status, 'pending');
   assert.notStrictEqual(ev.guests[0].id, g.id);
+});
+
+test('each card design keeps to its own swatches; emails follow the design', () => {
+  const t = setup();
+  const data = JSON.parse(JSON.stringify(DATA));
+  data.template = 'arch';
+  const id = t.call('host.saveEvent', { k: 'OWNER', event: { data } }).id;
+  const d = t.call('host.event', { k: 'OWNER', e: id }).event.data;
+  assert.deepStrictEqual(d.colors, { ground: '#FFF6E3', accent: '#F0B04F' }, 'night colors are replaced by arch defaults');
+  data.colors = { ground: '#FCEBE2', accent: '#E8A48C' };
+  t.call('host.saveEvent', { k: 'OWNER', event: { id, data } });
+  const g = t.call('host.saveGuest', { k: 'OWNER', e: id, guest: { name: 'P', email: 'p@x.co' } }).guest;
+  t.call('host.send', { k: 'OWNER', e: id, kind: 'invite', ids: [g.id] });
+  const html = t.sent[t.sent.length - 1].html;
+  assert.match(html, /envelope-arch-1-2\.png/);
+  assert.match(html, /background:#6B1F12;color:#FFF6E3/, 'light design uses a dark button');
+  data.template = 'nope';
+  t.call('host.saveEvent', { k: 'OWNER', event: { id, data } });
+  assert.strictEqual(t.call('host.event', { k: 'OWNER', e: id }).event.data.template, 'classic', 'unknown design falls back');
 });
 
 test('formatting helpers', () => {

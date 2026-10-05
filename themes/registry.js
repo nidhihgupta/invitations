@@ -3,12 +3,13 @@
  * calls Themes.register({...}) when its script loads.
  *
  * A theme provides:
- *   id, name, fontsUrl, swatches {ground:[{name,value}], accent:[...]},
- *   defaults (wording), templates [{id, name, note}],
+ *   id, name, fontsUrl, defaults (wording), templates [{id, name, note}],
+ *   swatchesFor(template) -> {ground:[{name,value}], accent:[...]}, vars(ev), classes(ev),
  *   envelope(ev, name) -> HTML, card(ev) -> HTML, hero(ev) -> HTML
+ * Swatches live in backend/core.js (THEMES) so the backend and the page always agree.
  */
 window.Themes = (function () {
-  var list = [{ id: 'diwali', name: 'Diwali — Midnight & Marigold' }];
+  var list = [{ id: 'diwali', name: 'Diwali' }];
   var loaded = {}, pending = {};
   var root = (document.currentScript && document.currentScript.src || '').replace(/themes\/registry\.js.*$/, '');
 
@@ -50,9 +51,20 @@ window.Themes = (function () {
     return out;
   }
 
+  function themeFor(ev) { return loaded[(ev && ev.theme) || list[0].id] || loaded[list[0].id]; }
+
+  // CSS variables (colors) for an event; each theme maps its design's swatches.
   function vars(ev) {
+    var t = themeFor(ev);
+    if (t && t.vars) return t.vars(ev);
     var c = (ev && ev.colors) || {};
-    return '--ground:' + (c.ground || '#1A1230') + ';--gold:' + (c.accent || '#D4AF5F');
+    return '--ground:' + (c.ground || '#1A1230') + ';--ground-2:' + (c.ground || '#1A1230') + ';--gold:' + (c.accent || '#D4AF5F');
+  }
+
+  // Classes that switch on a theme and its card design: "t-diwali tpl-arch".
+  function classes(ev) {
+    var t = themeFor(ev);
+    return t && t.classes ? t.classes(ev) : 't-' + ((ev && ev.theme) || list[0].id);
   }
 
   return {
@@ -60,6 +72,7 @@ window.Themes = (function () {
     load: load,
     register: function (t) { loaded[t.id] = t; },
     text: text,
-    vars: vars
+    vars: vars,
+    classes: classes
   };
 })();

@@ -19,18 +19,49 @@ var InviteCore = (function () {
     Log: ['ts', 'eventId', 'guestId', 'kind', 'detail']
   };
 
-  // What the backend needs to know about each theme (the visuals live in themes/<id>/).
+  // What the backend needs to know about each theme (the artwork lives in themes/<id>/).
+  // Each card design (template) uses one palette: its swatches, plus the colors emails need.
+  function sw(name, value, value2) { var o = { name: name, value: value }; if (value2) o.value2 = value2; return o; }
   var THEMES = {
     diwali: {
       name: 'Diwali',
       page: 'diwali.html',
-      grounds: ['#1A1230', '#3A0F1E', '#0E2A26', '#14213D'],
-      accents: ['#D4AF5F', '#E6C77E', '#C9A24A'],
-      text: '#F4E9D3', muted: '#CDBFA3', surround: '#EFE4CF',
       display: "'Cormorant Garamond', Georgia, 'Times New Roman', serif",
-      body: "Jost, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      body: "Jost, 'Helvetica Neue', Helvetica, Arial, sans-serif",
+      templates: { classic: 'night', mandala: 'night', toran: 'night', arch: 'arch', carnival: 'carnival', plum: 'plum' },
+      palettes: {
+        night: {
+          grounds: [sw('Midnight', '#1A1230'), sw('Deep maroon', '#3A0F1E'), sw('Emerald', '#0E2A26'), sw('Indigo', '#14213D')],
+          accents: [sw('Classic gold', '#D4AF5F'), sw('Pale gold', '#E6C77E'), sw('Antique gold', '#C9A24A')],
+          text: '#F4E9D3', muted: '#CDBFA3'
+        },
+        arch: {
+          grounds: [sw('Ivory', '#FFF6E3'), sw('Blush', '#FCEBE2'), sw('Pistachio', '#EFF2DF')],
+          accents: [sw('Saffron', '#F0B04F'), sw('Marigold', '#EC9A3A'), sw('Rose', '#E8A48C')],
+          text: '#5A1A0E', muted: '#8A4A2A', label: '#B5651D', button: '#6B1F12', buttonText: '#FFF6E3'
+        },
+        carnival: {
+          grounds: [sw('Plum to rust', '#3A0F1E', '#7A3416'), sw('Wine', '#2A0A1C', '#64202E'), sw('Night to plum', '#151033', '#4E1F46')],
+          accents: [sw('Marigold gold', '#F2C879'), sw('Bright gold', '#F5B942'), sw('Pale gold', '#F6DFAE')],
+          text: '#FFF3E2', muted: '#F0D9BE'
+        },
+        plum: {
+          grounds: [sw('Plum', '#3A1532'), sw('Aubergine', '#2A0E26'), sw('Midnight', '#1A1230')],
+          accents: [sw('Champagne', '#F1D39A'), sw('Classic gold', '#D4AF5F'), sw('Rose gold', '#E8B59A')],
+          text: '#F6E9DC', muted: '#D9C3B4'
+        }
+      },
+      surround: '#EFE4CF'
     }
   };
+
+  function paletteOf(theme, template) {
+    var th = THEMES[theme] || THEMES.diwali;
+    var key = th.templates[template] || th.templates[Object.keys(th.templates)[0]];
+    return { key: key, p: th.palettes[key] };
+  }
+
+  function values(list) { return list.map(function (x) { return x.value; }); }
 
   var MAX_PARTY = 10;
 
@@ -122,9 +153,12 @@ var InviteCore = (function () {
     var out = copy(d);
     out.theme = THEMES[out.theme] ? out.theme : 'diwali';
     var th = THEMES[out.theme];
+    if (!th.templates[out.template]) out.template = Object.keys(th.templates)[0];
+    var pal = paletteOf(out.theme, out.template).p;
     out.colors = out.colors || {};
-    if (!isHex(out.colors.ground)) out.colors.ground = th.grounds[0];
-    if (!isHex(out.colors.accent)) out.colors.accent = th.accents[0];
+    // Colors must come from the design's own swatches, so emails always have a matching image.
+    if (values(pal.grounds).indexOf(out.colors.ground) < 0) out.colors.ground = pal.grounds[0].value;
+    if (values(pal.accents).indexOf(out.colors.accent) < 0) out.colors.accent = pal.accents[0].value;
     out.text = out.text || {};
     out.email = out.email || {};
     var s = out.settings || {};
@@ -133,7 +167,7 @@ var InviteCore = (function () {
       out.settings[k] = s[k] === undefined ? SETTINGS_DEFAULTS[k] : s[k];
     });
     out.settings.autoRemindDays = Math.max(0, Math.min(30, int(out.settings.autoRemindDays, 0)));
-    ['date', 'startTime', 'endTime', 'venue', 'address', 'rsvpBy', 'template'].forEach(function (k) {
+    ['date', 'startTime', 'endTime', 'venue', 'address', 'rsvpBy'].forEach(function (k) {
       out[k] = str(out[k], 500);
     });
     return out;
@@ -246,10 +280,10 @@ var InviteCore = (function () {
     }
 
     function envelopeImage(d) {
-      var th = themeOf(d);
-      var gi = Math.max(0, th.grounds.indexOf(d.colors.ground));
-      var ai = Math.max(0, th.accents.indexOf(d.colors.accent));
-      return base() + '/themes/' + d.theme + '/email/envelope-' + gi + '-' + ai + '.png';
+      var pal = paletteOf(d.theme, d.template);
+      var gi = Math.max(0, values(pal.p.grounds).indexOf(d.colors.ground));
+      var ai = Math.max(0, values(pal.p.accents).indexOf(d.colors.accent));
+      return base() + '/themes/' + d.theme + '/email/envelope-' + pal.key + '-' + gi + '-' + ai + '.png';
     }
 
     function buildEmail(kind, ev, d, g, overrides) {
@@ -258,7 +292,9 @@ var InviteCore = (function () {
       var subject = fill(overrides.subject || d.email[kind + 'Subject'] || EMAIL_DEFAULTS[kind + 'Subject'], ev, d, g);
       var message = fill(overrides.message || d.email[kind + 'Message'] || EMAIL_DEFAULTS[kind + 'Message'], ev, d, g);
       var link = guestLink(ev, d, g);
-      var G = d.colors.ground, A = d.colors.accent, T = th.text, M = th.muted;
+      var P = paletteOf(d.theme, d.template).p;
+      var G = d.colors.ground, A = d.colors.accent, T = P.text;
+      var L = P.label || A, B = P.button || A, BT = P.buttonText || G;
       var paras = message.split(/\n{2,}/).map(function (p) {
         return '<p style="margin:0 0 16px">' + e(p).replace(/\n/g, '<br>') + '</p>';
       }).join('');
@@ -266,7 +302,7 @@ var InviteCore = (function () {
       if (kind === 'daybefore') {
         var rows = [fmt.date(d.date), fmt.timeRange(d.startTime, d.endTime), [d.venue, d.address].filter(Boolean).join(', ')]
           .filter(Boolean).map(function (r) { return e(r); });
-        if (d.address) rows.push('<a href="' + e(fmt.mapUrl(d.address)) + '" style="color:' + A + '">Open in Maps</a>');
+        if (d.address) rows.push('<a href="' + e(fmt.mapUrl(d.address)) + '" style="color:' + L + '">Open in Maps</a>');
         details = '<tr><td style="padding:0 40px 24px;font-family:' + th.body + ';font-size:15px;line-height:1.7;color:' + T +
           ';text-align:center;border-top:1px solid ' + A + ';border-bottom:1px solid ' + A + '"><div style="padding:16px 0">' +
           rows.join('<br>') + '</div></td></tr>';
@@ -277,11 +313,11 @@ var InviteCore = (function () {
         ';border:1px solid ' + A + '">' +
         '<tr><td style="padding:0"><a href="' + e(link) + '"><img src="' + e(envelopeImage(d)) + '" width="560" alt="A sealed invitation" ' +
         'style="display:block;width:100%;max-width:560px;height:auto;border:0"></a></td></tr>' +
-        '<tr><td style="padding:8px 24px 0;text-align:center;font-family:' + th.body + ';font-size:12px;letter-spacing:4px;text-transform:uppercase;color:' + A + '">For</td></tr>' +
+        '<tr><td style="padding:8px 24px 0;text-align:center;font-family:' + th.body + ';font-size:12px;letter-spacing:4px;text-transform:uppercase;color:' + L + '">For</td></tr>' +
         '<tr><td style="padding:4px 24px 24px;text-align:center;font-family:' + th.display + ';font-style:italic;font-size:30px;color:' + T + '">' + e(g.name) + '</td></tr>' +
         '<tr><td style="padding:0 40px 8px;font-family:' + th.display + ';font-size:18px;line-height:1.6;color:' + T + '">' + paras + '</td></tr>' +
         details +
-        '<tr><td align="center" style="padding:8px 24px 40px"><a href="' + e(link) + '" style="display:inline-block;background:' + A + ';color:' + G +
+        '<tr><td align="center" style="padding:8px 24px 40px"><a href="' + e(link) + '" style="display:inline-block;background:' + B + ';color:' + BT +
         ';padding:15px 28px;border-radius:6px;text-decoration:none;font-family:' + th.body + ';font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase">Open your invitation</a></td></tr>' +
         '</table>' +
         '<p style="text-align:center;font-family:' + th.body + ';font-size:12px;color:#7a6f63;margin:16px 0 0">' + e(d.text.title || '') + (d.text.hostNames ? ' · ' + e(d.text.hostNames) : '') + '</p>' +
@@ -740,7 +776,7 @@ var InviteCore = (function () {
   }
 
   return {
-    TABLES: TABLES, THEMES: THEMES, MAX_PARTY: MAX_PARTY, EMAIL_DEFAULTS: EMAIL_DEFAULTS,
+    TABLES: TABLES, THEMES: THEMES, paletteOf: paletteOf, MAX_PARTY: MAX_PARTY, EMAIL_DEFAULTS: EMAIL_DEFAULTS,
     SETTINGS_DEFAULTS: SETTINGS_DEFAULTS, fmt: fmt, addDays: addDays, parseYmd: parseYmd,
     normalizeData: normalizeData, parseGuestLines: parseGuestLines, isEmail: isEmail, isPhone: isPhone,
     create: create

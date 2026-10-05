@@ -1,6 +1,6 @@
 /*
  * Renders the images a theme needs outside the browser app:
- *   themes/<id>/email/envelope-<ground>-<accent>.png  (email header, one per color pair)
+ *   themes/<id>/email/envelope-<palette>-<ground>-<accent>.png  (email header, one per color pair)
  *   themes/<id>/og.png                                 (link preview in WhatsApp / iMessage)
  *
  * Usage: serve the repo root (python3 -m http.server 8765), then
@@ -34,17 +34,23 @@ const meta = Core.THEMES[theme];
   const dir = path.join(__dirname, '..', 'themes', theme);
   fs.mkdirSync(path.join(dir, 'email'), { recursive: true });
 
-  async function shot(mode, ground, accent, file, size, clip) {
+  async function shot(mode, qs, file, size, clip) {
     await page.setViewportSize(size);
-    await page.goto(base + 'tools/render.html?mode=' + mode + '&theme=' + theme + '&ground=' + encodeURIComponent(ground) + '&accent=' + encodeURIComponent(accent));
+    await page.goto(base + 'tools/render.html?mode=' + mode + '&theme=' + theme + '&' + qs);
     await page.waitForSelector('body[data-ready]');
     await page.screenshot({ path: file, type: 'png', clip });
     console.log('wrote', path.relative(process.cwd(), file));
   }
 
-  for (let g = 0; g < meta.grounds.length; g++) {
-    for (let a = 0; a < meta.accents.length; a++) {
-      await shot('email', meta.grounds[g], meta.accents[a], path.join(dir, 'email', 'envelope-' + g + '-' + a + '.png'), { width: 700, height: 480 }, { x: 40, y: 40, width: 620, height: 400 });
+  // One set of envelope images per palette (several card designs can share a palette).
+  for (const key of Object.keys(meta.palettes)) {
+    const template = Object.keys(meta.templates).find((t) => meta.templates[t] === key);
+    const pal = meta.palettes[key];
+    for (let g = 0; g < pal.grounds.length; g++) {
+      for (let a = 0; a < pal.accents.length; a++) {
+        const qs = 'template=' + template + '&ground=' + encodeURIComponent(pal.grounds[g].value) + '&accent=' + encodeURIComponent(pal.accents[a].value);
+        await shot('email', qs, path.join(dir, 'email', 'envelope-' + key + '-' + g + '-' + a + '.png'), { width: 700, height: 480 }, { x: 40, y: 40, width: 620, height: 400 });
+      }
     }
   }
   await ctx.close();
@@ -53,7 +59,8 @@ const meta = Core.THEMES[theme];
   await fontRoute(og);
   const p2 = await og.newPage();
   await p2.setViewportSize({ width: 1200, height: 630 });
-  await p2.goto(base + 'tools/render.html?mode=og&theme=' + theme + '&ground=' + encodeURIComponent(meta.grounds[0]) + '&accent=' + encodeURIComponent(meta.accents[0]));
+  const first = meta.palettes[meta.templates[Object.keys(meta.templates)[0]]];
+  await p2.goto(base + 'tools/render.html?mode=og&theme=' + theme + '&ground=' + encodeURIComponent(first.grounds[0].value) + '&accent=' + encodeURIComponent(first.accents[0].value));
   await p2.waitForSelector('body[data-ready]');
   await p2.screenshot({ path: path.join(dir, 'og.png'), type: 'png' });
   console.log('wrote', path.join('themes', theme, 'og.png'));

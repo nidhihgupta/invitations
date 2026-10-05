@@ -35,15 +35,15 @@ GitHub Pages (this repo, static)          Google Apps Script (your account)
 | `backend/core.js` | Data rules, validation, permissions, email building, daily reminders. |
 | `backend/Code.gs` | Apps Script entry points, Sheet storage, `setup()`, daily job. |
 | `themes/registry.js` | Theme loader. |
-| `themes/diwali/` | Theme 1, "Midnight & Marigold": SVG motifs, 3 card designs, styles, email and preview images. |
+| `themes/diwali/` | Diwali theme: SVG motifs, 6 card designs (Lanterns & Mandala, Saffron Arch, Marigold Carnival, Plum Lights, Rangoli Moon, Marigold Toran), styles, email and preview images. |
 | `tools/render-images.js` | Regenerates a theme's email and link-preview images. |
 | `tests/` | Unit tests for the core and for Code.gs against a fake Sheet. |
 
 ## Adding a theme
 
-1. Create `themes/<id>/theme.js` that calls `Themes.register({...})` with fonts, swatches, default wording, at least three `templates`, and `envelope()`, `card()` and `hero()` renderers. Copy the Diwali theme as a starting point.
-2. Add `themes/<id>/theme.css`, styling the shared classes (`.details`, `.rsvp`, `.thanks` and so on) under `.t-<id>`.
-3. Register it in `themes/registry.js` (`list`) and in `backend/core.js` (`THEMES`: swatch lists and its page).
+1. Add the theme to `backend/core.js` (`THEMES`): its page, its card designs (`templates`) and each design's palette (swatches plus the text and button colors emails use).
+2. Create `themes/<id>/theme.js` that calls `Themes.register({...})` with fonts, default wording, at least three card designs, and `envelope()`, `card()` and `hero()` renderers. Copy the Diwali theme as a starting point.
+3. Add `themes/<id>/theme.css`: style the shared classes (`.details`, `.rsvp`, `.thanks` and so on) under `.t-<id>`, and set each design's page colors under `.t-<id>.tpl-<design>`. Then add the theme to `list` in `themes/registry.js`.
 4. Copy `diwali.html` to `<id>.html` and update its preview tags.
 5. Serve the repo locally and run `node tools/render-images.js <id>` for the email and preview images.
 

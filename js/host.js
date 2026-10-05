@@ -536,7 +536,7 @@
         } else {
           draft = {
             theme: theme.id, template: theme.templates[0].id,
-            colors: { ground: theme.swatches.ground[0].value, accent: theme.swatches.accent[0].value },
+            colors: { ground: theme.swatchesFor(theme.templates[0].id).ground[0].value, accent: theme.swatchesFor(theme.templates[0].id).accent[0].value },
             text: Object.assign({}, theme.defaults, { hostNames: S.me.host.name }),
             date: '', startTime: '19:00', endTime: '', venue: '', address: '', rsvpBy: '',
             settings: JSON.parse(JSON.stringify(InviteCore.SETTINGS_DEFAULTS)), email: {}
@@ -565,11 +565,15 @@
       return '<label class="check"><input type="checkbox" data-path="' + p + '"' + (getPath(draft, p) ? ' checked' : '') + '><span>' + esc(label) +
         (help ? '<small class="muted">' + esc(help) + '</small>' : '') + '</span></label>';
     }
-    function swatches(kind) {
-      return '<div class="swatches" role="radiogroup" aria-label="' + (kind === 'ground' ? 'Background' : 'Accent') + '">' + theme.swatches[kind].map(function (s) {
+    function swatchList(kind) {
+      return theme.swatchesFor(draft.template)[kind].map(function (s) {
+        var bg = s.value2 ? 'linear-gradient(' + s.value + ',' + s.value2 + ')' : s.value;
         return '<label class="sw" title="' + esc(s.name) + '"><input type="radio" name="sw-' + kind + '" data-path="colors.' + kind + '" value="' + s.value + '"' +
-          (draft.colors[kind] === s.value ? ' checked' : '') + '><span style="background:' + s.value + '"></span><em>' + esc(s.name) + '</em></label>';
-      }).join('') + '</div>';
+          (draft.colors[kind] === s.value ? ' checked' : '') + '><span style="background:' + bg + '"></span><em>' + esc(s.name) + '</em></label>';
+      }).join('');
+    }
+    function swatches(kind) {
+      return '<div class="swatches" id="sw-' + kind + '" role="radiogroup" aria-label="' + (kind === 'ground' ? 'Background' : 'Accent') + '">' + swatchList(kind) + '</div>';
     }
 
     page('<a class="back" href="' + (id ? '#/e/' + encodeURIComponent(id) : '#/') + '">← Back</a>' +
@@ -583,7 +587,7 @@
       }).join('') + '</select></div>' +
       '<div class="f"><span class="lab">Card design</span><div class="tpls" role="radiogroup" aria-label="Card design">' + theme.templates.map(function (t) {
         return '<label class="tpl"><input type="radio" name="tpl" data-path="template" value="' + t.id + '"' + (draft.template === t.id ? ' checked' : '') + '>' +
-          '<div class="thumb t-' + theme.id + '" data-thumb="' + t.id + '"></div><strong>' + esc(t.name) + '</strong><small class="muted">' + esc(t.note) + '</small></label>';
+          '<div class="thumb" data-thumb="' + t.id + '"></div><strong>' + esc(t.name) + '</strong><small class="muted">' + esc(t.note) + '</small></label>';
       }).join('') + '</div></div>' +
       '<div class="f"><span class="lab">Background</span>' + swatches('ground') + '</div>' +
       '<div class="f"><span class="lab">Accent</span>' + swatches('accent') + '</div></section>' +
@@ -629,7 +633,7 @@
       '<aside class="ed-preview" aria-label="Preview"><div class="pv-tabs" role="tablist">' +
       ['envelope', 'card', 'phone'].map(function (k, i) {
         return '<button type="button" role="tab" data-pv="' + k + '" aria-selected="' + (i === 1) + '">' + k[0].toUpperCase() + k.slice(1) + '</button>';
-      }).join('') + '</div><div class="pv t-' + theme.id + '"></div></aside></div>');
+      }).join('') + '</div><div class="pv"></div></aside></div>');
 
     var form = app.querySelector('.ed-form'), pv = app.querySelector('.pv'), mode = 'card', timer = null;
 
@@ -638,18 +642,25 @@
       ev.id = id || 'preview'; ev.closed = ''; ev.addressHidden = false;
       return ev;
     }
+    function drawThumbs() {
+      var ev = previewEv();
+      app.querySelectorAll('[data-thumb]').forEach(function (th) {
+        var k = th.getAttribute('data-thumb');
+        var tev = Object.assign({}, ev, { template: k, colors: k === ev.template ? ev.colors : {} });
+        th.className = 'thumb ' + Themes.classes(tev);
+        th.setAttribute('style', Themes.vars(tev));
+        th.innerHTML = theme.card(tev);
+      });
+    }
     function drawPreview() {
       var ev = previewEv(), t = Themes.text(theme, ev);
+      pv.className = 'pv ' + Themes.classes(ev);
       pv.setAttribute('style', Themes.vars(ev));
       if (mode === 'envelope') pv.innerHTML = '<div class="pv-env">' + theme.envelope(ev, 'Priya Sharma') + '</div>';
       else if (mode === 'phone') pv.innerHTML = '<div class="pv-phone"><div class="narrow">' + theme.hero(ev) + '</div><div class="below">' + Render.details(ev, t) + Render.form(ev, t, null, { inert: true }) + '</div></div>';
       else pv.innerHTML = theme.card(ev);
       var env = pv.querySelector('.envelope');
       if (env) env.addEventListener('click', function () { env.classList.toggle('open'); });
-      app.querySelectorAll('[data-thumb]').forEach(function (th) {
-        th.setAttribute('style', Themes.vars(ev));
-        th.innerHTML = theme.card(Object.assign({}, ev, { template: th.getAttribute('data-thumb') }));
-      });
     }
     function schedule() { clearTimeout(timer); timer = setTimeout(drawPreview, 120); }
 
@@ -661,6 +672,17 @@
       var v = el.type === 'checkbox' ? el.checked : el.hasAttribute('data-int') ? parseInt(el.value, 10) || 0 : el.value;
       if (el.type === 'radio' && !el.checked) return;
       setPath(draft, p, v);
+      if (p === 'template') {
+        // Each design has its own swatches: keep the chosen position, e.g. the second background stays second.
+        var sw = theme.swatchesFor(v);
+        ['ground', 'accent'].forEach(function (kind) {
+          var box = document.getElementById('sw-' + kind);
+          var old = Array.prototype.map.call(box.querySelectorAll('input'), function (i) { return i.value; }).indexOf(draft.colors[kind]);
+          draft.colors[kind] = (sw[kind][old] || sw[kind][0]).value;
+          box.innerHTML = swatchList(kind);
+        });
+      }
+      if (p === 'template' || p.indexOf('colors.') === 0) drawThumbs();
       schedule();
     }
     on(app, '[data-pv]', 'click', function (e, b) {
@@ -689,6 +711,7 @@
     });
 
     drawPreview();
+    drawThumbs();
   }
 
   /* ---------- hosts (owner) ---------- */
