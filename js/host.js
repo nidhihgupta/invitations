@@ -97,6 +97,10 @@
       '<header class="top"><a class="brand" href="#/">Invitations</a><nav>' +
       '<a href="#/">Events</a>' + (owner ? '<a href="#/hosts">Hosts</a>' : '') + (Api.demo ? '<a href="#/outbox">Outbox</a>' : '') +
       '</nav>' + (me ? '<span class="me">' + esc(me.name) + '</span>' : '') + '</header>' +
+      (S.me && !Api.demo && S.me.version !== InviteCore.VERSION ? '<div class="demo warn-bar"><strong>Your Apps Script is out of date.</strong> ' +
+        'Some features won’t work until you update it: paste the latest <a href="https://raw.githubusercontent.com/nidhihgupta/invitations/main/backend/core.js" target="_blank" rel="noopener">core.js</a> into the <em>Core</em> file, ' +
+        'then Deploy → Manage deployments → ✏️ → Version: New version → Deploy. ' +
+        '<span class="small">(Backend ' + esc(S.me.version || 'before 2026-10-05.3') + ', site ' + esc(InviteCore.VERSION) + ')</span></div>' : '') +
       (Api.demo ? '<div class="demo">Demo mode: everything stays in this browser and emails go to the <a href="#/outbox">outbox</a> instead of being sent. ' +
         '<button type="button" class="linkish" data-act="reset-demo">Reset demo data</button></div>' : '') +
       '<main class="page">' + inner + '</main>';

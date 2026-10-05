@@ -28,6 +28,7 @@ h1 { font-size: 34px; margin: 0 0 4px; }
 .top nav a:hover { background: rgba(255, 255, 255, .08); }
 .top .me { font-size: 14px; color: #CDBFA3; }
 .demo { background: #F1E3C2; border-bottom: 1px solid var(--line-2); padding: 10px 24px; font-size: 14px; }
+.warn-bar { background: #F8E1D3; border-bottom-color: #E2B49A; }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; font: inherit; cursor: pointer; }
 
 .page { max-width: 1120px; margin: 0 auto; padding: 24px 24px 96px; }
