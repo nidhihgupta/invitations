@@ -154,7 +154,8 @@ test('sending: email vs text-only, once per day, invite tracking', () => {
   assert.deepStrictEqual([r.sent, r.textOnly.length], [1, 1]);
   const mail = t.sent[0];
   assert.strictEqual(mail.subject, 'You’re invited: A Diwali Evening'.replace('’', "'"));
-  assert.match(mail.html, /envelope-night-1-1\.png/, 'email image follows the chosen colors');
+  assert.match(mail.html, /stamp-night-1-1\.png/, 'stamp follows the chosen colors');
+  assert.match(mail.html, /Priya Sharma<\/td>/, 'the guest name is written on the envelope');
   assert.match(mail.html, /Dear Priya,/);
   assert.match(mail.html, /kindly reply by Saturday, October 31/);
   assert.match(mail.html, /diwali\.html\?e=/);
@@ -185,7 +186,7 @@ test('daily job: auto reminder and day-before email', () => {
   t2.core.daily();
   assert.strictEqual(t2.sent.length, 1);
   assert.match(t2.sent[0].subject, /See you tomorrow/);
-  assert.match(t2.sent[0].html, /Open in Maps/);
+  assert.match(t2.sent[0].html, /View map/);
 });
 
 test('family hosts see only their events; owner manages hosts', () => {
@@ -232,8 +233,8 @@ test('each card design keeps to its own swatches; emails follow the design', () 
   const g = t.call('host.saveGuest', { k: 'OWNER', e: id, guest: { name: 'P', email: 'p@x.co' } }).guest;
   t.call('host.send', { k: 'OWNER', e: id, kind: 'invite', ids: [g.id] });
   const html = t.sent[t.sent.length - 1].html;
-  assert.match(html, /envelope-arch-1-2\.png/);
-  assert.match(html, /background:#6B1F12;color:#FFF6E3/, 'light design uses a dark button');
+  assert.match(html, /stamp-arch-1-2\.png/);
+  assert.match(html, /background:#6B1F12;color:#FFF6E3/, 'light design uses a dark envelope and button');
   data.template = 'nope';
   t.call('host.saveEvent', { k: 'OWNER', event: { id, data } });
   assert.strictEqual(t.call('host.event', { k: 'OWNER', e: id }).event.data.template, 'classic', 'unknown design falls back');

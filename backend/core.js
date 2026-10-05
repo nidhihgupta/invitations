@@ -33,22 +33,22 @@ var InviteCore = (function () {
         night: {
           grounds: [sw('Midnight', '#1A1230'), sw('Deep maroon', '#3A0F1E'), sw('Emerald', '#0E2A26'), sw('Indigo', '#14213D')],
           accents: [sw('Classic gold', '#D4AF5F'), sw('Pale gold', '#E6C77E'), sw('Antique gold', '#C9A24A')],
-          text: '#F4E9D3', muted: '#CDBFA3'
+          text: '#F4E9D3', muted: '#CDBFA3', envInk: '#F4E9D3'
         },
         arch: {
           grounds: [sw('Ivory', '#FFF6E3'), sw('Blush', '#FCEBE2'), sw('Pistachio', '#EFF2DF')],
           accents: [sw('Saffron', '#F0B04F'), sw('Marigold', '#EC9A3A'), sw('Rose', '#E8A48C')],
-          text: '#5A1A0E', muted: '#8A4A2A', label: '#B5651D', button: '#6B1F12', buttonText: '#FFF6E3'
+          text: '#5A1A0E', muted: '#8A4A2A', label: '#B5651D', button: '#6B1F12', buttonText: '#FFF6E3', env: '#6B1F12', envInk: '#FFF6E3'
         },
         carnival: {
           grounds: [sw('Plum to rust', '#3A0F1E', '#7A3416'), sw('Wine', '#2A0A1C', '#64202E'), sw('Night to plum', '#151033', '#4E1F46')],
           accents: [sw('Marigold gold', '#F2C879'), sw('Bright gold', '#F5B942'), sw('Pale gold', '#F6DFAE')],
-          text: '#FFF3E2', muted: '#F0D9BE'
+          text: '#FFF3E2', muted: '#F0D9BE', envInk: '#FFF3E2'
         },
         plum: {
           grounds: [sw('Plum', '#3A1532'), sw('Aubergine', '#2A0E26'), sw('Midnight', '#1A1230')],
           accents: [sw('Champagne', '#F1D39A'), sw('Classic gold', '#D4AF5F'), sw('Rose gold', '#E8B59A')],
-          text: '#F6E9DC', muted: '#D9C3B4'
+          text: '#F6E9DC', muted: '#D9C3B4', envInk: '#F6E9DC'
         }
       },
       surround: '#EFE4CF'
@@ -279,13 +279,28 @@ var InviteCore = (function () {
       return String(tpl || '').replace(/\{(\w+)\}/g, function (m, k) { return vars.hasOwnProperty(k) ? vars[k] : m; });
     }
 
-    function envelopeImage(d) {
+    function stampImage(d) {
       var pal = paletteOf(d.theme, d.template);
       var gi = Math.max(0, values(pal.p.grounds).indexOf(d.colors.ground));
       var ai = Math.max(0, values(pal.p.accents).indexOf(d.colors.accent));
-      return base() + '/themes/' + d.theme + '/email/envelope-' + pal.key + '-' + gi + '-' + ai + '.png';
+      return base() + '/themes/' + d.theme + '/email/stamp-' + pal.key + '-' + gi + '-' + ai + '.png';
     }
 
+    function calendarUrl(d) {
+      var stamp = function (date, time) { return date.replace(/-/g, '') + (time ? 'T' + time.replace(':', '') + '00' : ''); };
+      var end;
+      if (d.endTime) end = stamp(d.endTime <= d.startTime ? addDays(d.date, 1) : d.date, d.endTime);
+      else if (d.startTime) {
+        var h = parseInt(d.startTime, 10) + 3, day = d.date;
+        if (h >= 24) { h -= 24; day = addDays(d.date, 1); }
+        end = stamp(day, (h < 10 ? '0' : '') + h + d.startTime.slice(2));
+      } else end = stamp(addDays(d.date, 1));
+      return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(d.text.title || '') +
+        '&dates=' + stamp(d.date, d.startTime) + '/' + end + '&location=' + encodeURIComponent([d.venue, d.address].filter(Boolean).join(', '));
+    }
+
+    // Email layout (like a paper invitation in the mail): context on light paper, then the
+    // addressed front of the envelope, the button, and the event details on a dark band.
     function buildEmail(kind, ev, d, g, overrides) {
       overrides = overrides || {};
       var th = themeOf(d), e = fmt.esc;
@@ -293,34 +308,44 @@ var InviteCore = (function () {
       var message = fill(overrides.message || d.email[kind + 'Message'] || EMAIL_DEFAULTS[kind + 'Message'], ev, d, g);
       var link = guestLink(ev, d, g);
       var P = paletteOf(d.theme, d.template).p;
-      var G = d.colors.ground, A = d.colors.accent, T = P.text;
-      var L = P.label || A, B = P.button || A, BT = P.buttonText || G;
+      var ENV = P.env || d.colors.ground, INK = P.envInk || P.text, A = d.colors.accent;
+      var PAPER = '#FBF6EA', DARK = '#2A2433', SOFT = '#6B5E52';
+      var D = th.display, S = th.body;
+      var hideAddress = d.settings.addressVisibility === 'accepted' && !(g && g.status === 'yes');
       var paras = message.split(/\n{2,}/).map(function (p) {
         return '<p style="margin:0 0 16px">' + e(p).replace(/\n/g, '<br>') + '</p>';
       }).join('');
+      var label = function (t) { return '<div style="font-family:' + S + ';font-size:12px;letter-spacing:4px;text-transform:uppercase;color:' + A + ';margin:0 0 6px">' + t + '</div>'; };
+      var linkStyle = 'color:' + INK + ';font-family:' + S + ';font-size:12px;letter-spacing:3px;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px';
+      var when = [fmt.date(d.date), fmt.timeRange(d.startTime, d.endTime)].filter(Boolean);
       var details = '';
-      if (kind === 'daybefore') {
-        var rows = [fmt.date(d.date), fmt.timeRange(d.startTime, d.endTime), [d.venue, d.address].filter(Boolean).join(', ')]
-          .filter(Boolean).map(function (r) { return e(r); });
-        if (d.address) rows.push('<a href="' + e(fmt.mapUrl(d.address)) + '" style="color:' + L + '">Open in Maps</a>');
-        details = '<tr><td style="padding:0 40px 24px;font-family:' + th.body + ';font-size:15px;line-height:1.7;color:' + T +
-          ';text-align:center;border-top:1px solid ' + A + ';border-bottom:1px solid ' + A + '"><div style="padding:16px 0">' +
-          rows.join('<br>') + '</div></td></tr>';
+      if (when.length) {
+        details += label('When') + '<div style="font-family:' + S + ';font-size:16px;line-height:1.6;color:' + INK + '">' + when.map(e).join('<br>') + '</div>' +
+          '<div style="margin:8px 0 22px"><a href="' + e(calendarUrl(d)) + '" style="' + linkStyle + '">Add to calendar</a></div>';
+      }
+      var place = [d.venue, hideAddress ? '' : d.address].filter(Boolean);
+      if (place.length) {
+        details += label('Where') + '<div style="font-family:' + S + ';font-size:16px;line-height:1.6;color:' + INK + '">' + place.map(e).join('<br>') + '</div>' +
+          (d.address && !hideAddress ? '<div style="margin:8px 0 4px"><a href="' + e(fmt.mapUrl(d.address)) + '" style="' + linkStyle + '">View map</a></div>' :
+            hideAddress && d.address ? '<div style="font-family:' + S + ';font-size:13px;color:' + INK + ';opacity:.8;margin-top:6px">The address is shared once you accept.</div>' : '');
       }
       var html =
         '<div style="background:' + th.surround + ';padding:24px 12px">' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;margin:0 auto;background:' + G +
-        ';border:1px solid ' + A + '">' +
-        '<tr><td style="padding:0"><a href="' + e(link) + '"><img src="' + e(envelopeImage(d)) + '" width="560" alt="A sealed invitation" ' +
-        'style="display:block;width:100%;max-width:560px;height:auto;border:0"></a></td></tr>' +
-        '<tr><td style="padding:8px 24px 0;text-align:center;font-family:' + th.body + ';font-size:12px;letter-spacing:4px;text-transform:uppercase;color:' + L + '">For</td></tr>' +
-        '<tr><td style="padding:4px 24px 24px;text-align:center;font-family:' + th.display + ';font-style:italic;font-size:30px;color:' + T + '">' + e(g.name) + '</td></tr>' +
-        '<tr><td style="padding:0 40px 8px;font-family:' + th.display + ';font-size:18px;line-height:1.6;color:' + T + '">' + paras + '</td></tr>' +
-        details +
-        '<tr><td align="center" style="padding:8px 24px 40px"><a href="' + e(link) + '" style="display:inline-block;background:' + B + ';color:' + BT +
-        ';padding:15px 28px;border-radius:6px;text-decoration:none;font-family:' + th.body + ';font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase">Open your invitation</a></td></tr>' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;margin:0 auto;background:' + PAPER + ';border-collapse:collapse">' +
+        '<tr><td style="padding:36px 32px 6px;text-align:center;font-family:' + D + ';font-size:32px;line-height:1.2;color:' + DARK + '">' + e(d.text.title || '') + '</td></tr>' +
+        '<tr><td align="center" style="padding:6px 0 18px"><div style="width:64px;height:1px;background:' + A + ';line-height:1px;font-size:1px">&nbsp;</div></td></tr>' +
+        '<tr><td style="padding:0 40px 8px;font-family:' + D + ';font-size:18px;line-height:1.6;color:' + DARK + '">' + paras + '</td></tr>' +
+        '<tr><td style="padding:4px 32px 24px">' +
+        '<a href="' + e(link) + '" style="text-decoration:none;display:block">' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:' + ENV + ';border:1px solid ' + A + ';border-radius:6px;border-collapse:separate">' +
+        '<tr><td align="right" style="padding:14px 14px 0"><img src="' + e(stampImage(d)) + '" width="200" height="109" alt="" style="display:block;border:0;width:200px;height:auto"></td></tr>' +
+        '<tr><td align="center" style="padding:18px 24px 66px;font-family:' + D + ';font-style:italic;font-size:34px;line-height:1.2;color:' + INK + '">' + e(g.name) + '</td></tr>' +
+        '</table></a></td></tr>' +
+        '<tr><td align="center" style="padding:0 24px 34px"><a href="' + e(link) + '" style="display:inline-block;background:' + ENV + ';color:' + INK +
+        ';padding:15px 30px;border-radius:6px;text-decoration:none;font-family:' + S + ';font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase">Open your invitation</a></td></tr>' +
+        (details ? '<tr><td style="background:' + ENV + ';padding:30px 32px 32px;text-align:center">' + details + '</td></tr>' : '') +
         '</table>' +
-        '<p style="text-align:center;font-family:' + th.body + ';font-size:12px;color:#7a6f63;margin:16px 0 0">' + e(d.text.title || '') + (d.text.hostNames ? ' · ' + e(d.text.hostNames) : '') + '</p>' +
+        '<p style="text-align:center;font-family:' + S + ';font-size:12px;color:' + SOFT + ';margin:16px 0 0">' + e(d.text.title || '') + (d.text.hostNames ? ' · ' + e(d.text.hostNames) : '') + '</p>' +
         '</div>';
       var text = message + '\n\nOpen your invitation: ' + link;
       return { subject: subject, html: html, text: text };

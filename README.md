@@ -36,7 +36,7 @@ GitHub Pages (this repo, static)          Google Apps Script (your account)
 | `backend/Code.gs` | Apps Script entry points, Sheet storage, `setup()`, daily job. |
 | `themes/registry.js` | Theme loader. |
 | `themes/diwali/` | Diwali theme: SVG motifs, 6 card designs (Lanterns & Mandala, Saffron Arch, Marigold Carnival, Plum Lights, Rangoli Moon, Marigold Toran), styles, email and preview images. |
-| `tools/render-images.js` | Regenerates a theme's email and link-preview images. |
+| `tools/render-images.js` | Regenerates a theme's email stamps and link-preview image. |
 | `tests/` | Unit tests for the core and for Code.gs against a fake Sheet. |
 
 ## Adding a theme
@@ -45,7 +45,7 @@ GitHub Pages (this repo, static)          Google Apps Script (your account)
 2. Create `themes/<id>/theme.js` that calls `Themes.register({...})` with fonts, default wording, at least three card designs, and `envelope()`, `card()` and `hero()` renderers. Copy the Diwali theme as a starting point.
 3. Add `themes/<id>/theme.css`: style the shared classes (`.details`, `.rsvp`, `.thanks` and so on) under `.t-<id>`, and set each design's page colors under `.t-<id>.tpl-<design>`. Then add the theme to `list` in `themes/registry.js`.
 4. Copy `diwali.html` to `<id>.html` and update its preview tags.
-5. Serve the repo locally and run `node tools/render-images.js <id>` for the email and preview images.
+5. Serve the repo locally and run `node tools/render-images.js <id>` for the email stamps and preview image (the theme provides `stampArt()` and `previewArt()`).
 
 ## Developing
 

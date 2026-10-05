@@ -6,9 +6,9 @@
 <!-- Used by tools/render-images.js to draw email and link-preview images from a theme. -->
 <style>
   html, body { margin: 0; }
-  body.email { width: 700px; height: 480px; }
-  body.email .stage { width: 700px; height: 480px; }
-  body.email .envelope .to { display: none; }
+  body.stamp, body.stamp .stage { width: 440px; height: 240px; background: transparent; }
+  body.og2, body.og2 .stage { width: 1200px; height: 630px; }
+  body.stamp svg, body.og2 svg { display: block; color: var(--gold); }
   body.og { width: 1200px; height: 630px; display: flex; align-items: center; justify-content: center; }
   body.og .stage { width: 760px; }
   body.og .envelope { box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
@@ -24,7 +24,9 @@
   Themes.load(ev.theme).then(function (theme) {
     document.body.className = q.get('mode') + ' ' + Themes.classes(ev);
     document.body.setAttribute('style', Themes.vars(ev));
-    document.getElementById('stage').innerHTML = theme.envelope(ev, 'you');
+    var mode = q.get('mode');
+    document.getElementById('stage').innerHTML = mode === 'stamp' ? theme.stampArt(ev) :
+      mode === 'og2' ? theme.previewArt(ev) : theme.envelope(ev, 'you');
     return document.fonts.ready;
   }).then(function () { document.body.setAttribute('data-ready', '1'); });
 </script>

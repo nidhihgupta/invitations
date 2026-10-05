@@ -465,6 +465,53 @@
 
   function classes(ev) { return 't-diwali tpl-' + tplId(ev); }
 
+  /* ---------- envelope front: stamp + postmark (email) and link preview (rendered by tools/render-images.js) ---------- */
+
+  function pal(ev) { return InviteCore.paletteOf('diwali', tplId(ev)).p; }
+  function envColor(ev) { return pal(ev).env || 'var(--ground)'; }
+
+  // Postmark, cancellation lines and a perforated stamp with a diya. 440 x 240, transparent.
+  function stampArt(ev) {
+    var m = uid('pf'), ink = pal(ev).envInk;
+    var holes = '';
+    for (var x = 284; x <= 420; x += 12) holes += '<circle cx="' + x + '" cy="26" r="4.5" fill="#000"/><circle cx="' + x + '" cy="214" r="4.5" fill="#000"/>';
+    for (var y = 38; y <= 202; y += 12) holes += '<circle cx="276" cy="' + y + '" r="4.5" fill="#000"/><circle cx="428" cy="' + y + '" r="4.5" fill="#000"/>';
+    var waves = '';
+    for (var i = 0; i < 5; i++) {
+      var yy = 92 + i * 14;
+      waves += '<path d="M150 ' + yy + ' q 12 -7 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0 t 24 0" fill="none" stroke="' + ink + '" stroke-width="2" stroke-opacity="0.55"/>';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 240" width="440" height="240">' +
+      '<defs><mask id="' + m + '"><rect x="276" y="26" width="152" height="188" fill="#fff"/>' + holes + '</mask></defs>' +
+      '<g transform="rotate(-8 90 120)">' +
+      c(90, 120, 66, 'none', ' stroke="' + ink + '" stroke-width="2.5" stroke-opacity="0.6"') +
+      c(90, 120, 54, 'none', ' stroke="' + ink + '" stroke-width="1.2" stroke-opacity="0.6"') +
+      '<text x="90" y="112" text-anchor="middle" font-family="Jost, Helvetica, Arial, sans-serif" font-size="15" letter-spacing="3" fill="' + ink + '" fill-opacity="0.65">SHUBH</text>' +
+      '<text x="90" y="134" text-anchor="middle" font-family="Jost, Helvetica, Arial, sans-serif" font-size="13" letter-spacing="2" fill="' + ink + '" fill-opacity="0.65">DEEPAVALI</text>' +
+      c(90, 150, 2.5, ink, ' fill-opacity="0.8"') + '</g>' +
+      waves +
+      '<g mask="url(#' + m + ')" filter="drop-shadow(0 2px 2px rgba(0,0,0,.25))"><rect x="276" y="26" width="152" height="188" fill="#FBF6EA"/>' +
+      '<rect x="290" y="40" width="124" height="160" style="fill:var(--ground)"/>' +
+      '<rect x="294" y="44" width="116" height="152" fill="none" stroke="currentColor" stroke-width="1.5"/>' +
+      g('translate(352 108) scale(0.62)', mandala(0, 0, 0.62)) + diya(352, 110, 0.62) +
+      '<text x="352" y="186" text-anchor="middle" font-family="Jost, Helvetica, Arial, sans-serif" font-size="12" letter-spacing="3" fill="currentColor">DIWALI</text></g>' +
+      '</svg>';
+  }
+
+  // Front of the envelope for the link preview in WhatsApp / iMessage. 1200 x 630.
+  function previewArt(ev) {
+    var sh = uid('ps'), P = pal(ev);
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">' +
+      '<defs><filter id="' + sh + '" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#3a2a1a" flood-opacity="0.35"/></filter></defs>' +
+      '<rect width="1200" height="630" fill="#EFE4CF"/>' +
+      '<g filter="url(#' + sh + ')"><rect x="170" y="55" width="860" height="520" rx="6" style="fill:' + envColor(ev) + '"/></g>' +
+      '<rect x="170" y="55" width="860" height="520" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>' +
+      '<svg x="700" y="80" width="308" height="168" viewBox="0 0 440 240">' + stampArt(ev).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</svg>' +
+      '<text x="600" y="380" text-anchor="middle" font-family="\'Cormorant Garamond\', Georgia, serif" font-style="italic" font-size="72" fill="' + P.envInk + '">You’re invited</text>' +
+      '<line x1="420" y1="420" x2="780" y2="420" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.8"/>' +
+      '</svg>';
+  }
+
   var theme = {
     id: 'diwali',
     name: 'Diwali',
@@ -493,6 +540,8 @@
     },
     templates: Object.keys(TEMPLATES).map(function (k) { return { id: k, name: TEMPLATES[k].name, note: TEMPLATES[k].note }; }),
     envelope: envelope,
+    stampArt: stampArt,
+    previewArt: previewArt,
     card: card,
     hero: hero
   };
