@@ -1,0 +1,98 @@
+/* Diwali — "Midnight & Marigold". Ported from the approved design reference. */
+.t-diwali {
+  --ground: #1A1230;
+  --gold: #D4AF5F;
+  --cream: #F4E9D3; --cream-2: #E6D8BC; --muted: #CDBFA3; --field: #5A4D6E;
+  --ink-on-gold: #1A1230;
+  --surround: #EFE4CF;
+  --display: 'Cormorant Garamond', Georgia, serif;
+  --body: 'Jost', 'Helvetica Neue', sans-serif;
+  --deva: 'Tiro Devanagari Hindi', serif;
+  background: var(--ground);
+  color: var(--cream);
+  font-family: var(--body);
+}
+.t-diwali svg { color: var(--gold); display: block; }
+.t-diwali .g { fill: var(--ground); }
+
+/* Envelope */
+.t-diwali .envelope { width: min(700px, 100%); aspect-ratio: 700/480; background: var(--surround); position: relative; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; display: block; }
+.t-diwali .envelope svg { width: 100%; height: 100%; }
+.t-diwali .envelope .flap { transform-origin: 350px 40px; transition: transform .9s cubic-bezier(.6,0,.2,1), opacity .9s; }
+.t-diwali .envelope.open .flap { transform: scaleY(-1); opacity: .35; }
+.t-diwali .envelope .to { position: absolute; left: 0; right: 0; top: 70.8%; text-align: center; container-type: inline-size; }
+.t-diwali .to small { display: block; font-size: max(10px, 1.6cqw); letter-spacing: .6cqw; text-transform: uppercase; color: var(--gold); }
+.t-diwali .to span { font-family: var(--display); font-style: italic; font-size: max(18px, 4.3cqw); color: var(--cream); }
+
+/* Invitation card 700x980 */
+.t-diwali .card { width: min(700px, 100%); aspect-ratio: 700/980; background: var(--ground); position: relative; container-type: inline-size; }
+.t-diwali .card svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.t-diwali .card .txt { position: absolute; left: 0; right: 0; top: 49.8%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2cqw; padding: 0 11.4cqw; }
+.t-diwali .deva { font-family: var(--deva); color: var(--gold); }
+.t-diwali .card .deva { font-size: 3.1cqw; }
+.t-diwali .kick { text-transform: uppercase; color: var(--muted); }
+.t-diwali .card .kick { font-size: 1.9cqw; letter-spacing: .7cqw; }
+.t-diwali h1 { margin: 0; font-family: var(--display); font-style: italic; font-weight: 500; line-height: 1; color: var(--cream); }
+.t-diwali .card h1 { font-size: 9.7cqw; }
+.t-diwali .sub { font-family: var(--display); color: var(--cream-2); }
+.t-diwali .card .sub { font-size: 3.1cqw; }
+.t-diwali .rule { width: 9cqw; height: 1px; background: var(--gold); margin: 1cqw 0; }
+.t-diwali .when { font-size: 2.1cqw; letter-spacing: .3cqw; text-transform: uppercase; display: flex; flex-direction: column; gap: .9cqw; }
+.t-diwali .when .where { color: var(--muted); }
+.t-diwali .host { font-family: var(--display); font-style: italic; color: var(--cream-2); }
+.t-diwali .card .host { font-size: 2.9cqw; }
+.t-diwali .fine { font-size: 1.7cqw; letter-spacing: .43cqw; text-transform: uppercase; color: var(--gold); }
+
+/* Phone view */
+.t-diwali .hero svg { width: 100%; height: auto; }
+.t-diwali .phone .txt, .t-diwali .narrow .txt { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 0 28px; }
+.t-diwali .narrow .deva { font-size: 20px; }
+.t-diwali .narrow .kick { font-size: 12px; letter-spacing: 4px; }
+.t-diwali .narrow h1 { font-size: 48px; line-height: 1.05; }
+.t-diwali .narrow .sub { font-size: 19px; }
+.t-diwali .narrow .host { font-size: 18px; }
+
+.t-diwali .details { margin: 32px 24px 0; padding: 20px 0; border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold); display: flex; flex-direction: column; gap: 16px; }
+.t-diwali .details .row { display: flex; gap: 14px; align-items: flex-start; color: var(--gold); }
+.t-diwali .details .row svg { flex: none; margin-top: 1px; }
+.t-diwali .details .row span { color: var(--cream); font-size: 16px; line-height: 1.4; }
+.t-diwali .details .row a { color: var(--gold); text-underline-offset: 3px; }
+.t-diwali .details p { margin: 0; font-size: 14px; color: var(--muted); }
+
+.t-diwali .who { margin: 40px 24px 0; text-align: center; }
+.t-diwali .who h2 { margin: 0 0 6px; font-family: var(--display); font-weight: 500; font-size: 26px; }
+.t-diwali .who p { margin: 0 0 14px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.t-diwali .who ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; font-family: var(--display); font-style: italic; font-size: 19px; color: var(--cream-2); }
+.t-diwali .who li small { font-family: var(--body); font-style: normal; font-size: 12px; color: var(--muted); }
+
+.t-diwali .rsvp { margin: 48px 24px 0; display: flex; flex-direction: column; gap: 18px; }
+.t-diwali .rsvp h2, .t-diwali .thanks h2, .t-diwali .closed h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 30px; text-align: center; }
+.t-diwali .choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0; padding: 0; margin: 0; }
+.t-diwali .choice legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.t-diwali .choice button { min-height: 52px; border-radius: 6px; font-family: var(--body); font-size: 15px; cursor: pointer; border: 1px solid var(--field); background: transparent; color: var(--cream); padding: 6px 8px; }
+.t-diwali .choice button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold); color: var(--ink-on-gold); font-weight: 500; }
+.t-diwali .field { display: flex; flex-direction: column; gap: 6px; }
+.t-diwali label, .t-diwali .lab { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.t-diwali input, .t-diwali textarea { width: 100%; height: 48px; padding: 0 14px; background: transparent; border: 1px solid var(--field); border-radius: 6px; color: var(--cream); font-family: var(--body); font-size: 16px; }
+.t-diwali textarea { height: 88px; padding: 12px 14px; resize: none; }
+.t-diwali input[aria-invalid="true"] { border-color: #E39B2C; }
+.t-diwali .err { font-size: 13px; color: #F2B544; min-height: 0; }
+.t-diwali .stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.t-diwali .stepper > div { display: flex; align-items: center; gap: 4px; }
+.t-diwali .stepper button { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font-size: 20px; cursor: pointer; }
+.t-diwali .stepper button:disabled { opacity: .35; cursor: default; }
+.t-diwali .stepper output { min-width: 32px; text-align: center; font-size: 20px; }
+.t-diwali .send { height: 52px; border: none; border-radius: 6px; background: var(--gold); color: var(--ink-on-gold); font-family: var(--body); font-size: 15px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; }
+.t-diwali .send:disabled { opacity: .6; cursor: progress; }
+.t-diwali .form-error { margin: 0; padding: 12px 14px; border: 1px solid #E39B2C; border-radius: 6px; font-size: 14px; color: var(--cream); }
+
+.t-diwali .thanks, .t-diwali .closed { margin: 48px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding-top: 24px; }
+.t-diwali .thanks h2 { font-style: italic; font-size: 34px; }
+.t-diwali .thanks p, .t-diwali .closed p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
+.t-diwali .thanks .summary { color: var(--cream-2); }
+.t-diwali .thanks .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; }
+.t-diwali .ghost { min-height: 44px; padding: 0 20px; border: 1px solid var(--gold); border-radius: 6px; background: transparent; color: var(--gold); font-family: var(--body); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+
+.t-diwali button:focus-visible, .t-diwali input:focus-visible, .t-diwali textarea:focus-visible, .t-diwali a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) { .t-diwali .envelope .flap { transition: none; } }

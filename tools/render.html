@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Image renderer</title>
+<!-- Used by tools/render-images.js to draw email and link-preview images from a theme. -->
+<style>
+  html, body { margin: 0; }
+  body.email { width: 700px; height: 480px; }
+  body.email .stage { width: 700px; height: 480px; }
+  body.email .envelope .to { display: none; }
+  body.og { width: 1200px; height: 630px; display: flex; align-items: center; justify-content: center; }
+  body.og .stage { width: 760px; }
+  body.og .envelope { box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<script src="../backend/core.js"></script>
+<script src="../themes/registry.js"></script>
+<script>
+  var q = new URLSearchParams(location.search);
+  var ev = { colors: { ground: q.get('ground'), accent: q.get('accent') } };
+  Themes.load(q.get('theme') || 'diwali').then(function (theme) {
+    document.body.className = q.get('mode') + ' t-' + theme.id;
+    document.body.setAttribute('style', Themes.vars(ev));
+    document.getElementById('stage').innerHTML = theme.envelope(ev, 'you');
+    return document.fonts.ready;
+  }).then(function () { document.body.setAttribute('data-ready', '1'); });
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+/* Guest page layout. Colors and type come from the event's theme (themes/<id>/theme.css). */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: #1A1230; color: #F4E9D3; font-family: 'Helvetica Neue', Arial, sans-serif; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.loading { min-height: 100svh; display: flex; align-items: center; justify-content: center; }
+.loading .dot { width: 10px; height: 10px; border-radius: 50%; background: #D4AF5F; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+/* Stage 1: the envelope */
+.env-stage { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 24px 16px; transition: opacity .4s ease, transform .4s ease; }
+.env-stage .envelope { max-width: 600px; box-shadow: 0 18px 40px rgba(0, 0, 0, .35); transition: transform .3s ease; }
+.env-stage .envelope:hover { transform: translateY(-2px); }
+.env-stage .hint { font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--muted, #CDBFA3); min-height: 1em; }
+.env-stage.leaving { opacity: 0; transform: translateY(24px) scale(.98); }
+
+/* Stage 2: card + reply */
+.main { padding-bottom: 72px; }
+.main.rise { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(70px); } to { opacity: 1; transform: none; } }
+.wide { display: none; }
+.narrow, .below { max-width: 480px; margin: 0 auto; }
+@media (min-width: 760px) {
+  .wide { display: block; padding: 48px 24px 0; }
+  .wide .card { margin: 0 auto; max-width: 640px; box-shadow: 0 24px 60px rgba(0, 0, 0, .4); }
+  .narrow { display: none; }
+  .below { padding-top: 24px; }
+}
+
+/* Not found / errors: neutral styling, no theme */
+body.neutral { background: #F7F2E9; color: #2A2433; font-family: Georgia, 'Times New Roman', serif; }
+.notice { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 12px; max-width: 520px; margin: 0 auto; }
+.notice h1 { font-weight: normal; font-style: italic; font-size: 32px; margin: 0; }
+.notice p { margin: 0; line-height: 1.6; color: #5b5262; }
+.notice button { margin-top: 12px; min-height: 44px; padding: 0 20px; border: 1px solid #2A2433; border-radius: 6px; background: transparent; font: inherit; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .main.rise { animation: none; }
+  .env-stage, .env-stage .envelope { transition: none; }
+  .loading .dot { animation: none; }
+}
