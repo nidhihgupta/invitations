@@ -452,20 +452,36 @@
           }, 'wide');
         }).catch(function (err) { busy(b, false); showError(err); });
       });
-      on(box, '[data-act="send"]', 'click', function (e, b) {
-        var ids = res.guests.filter(function (g) { return picked[g.id] && g.email; }).map(function (g) { return g.id; });
-        if (!confirm('Send this ' + KINDS[kind].label.toLowerCase() + ' to ' + ids.length + (ids.length === 1 ? ' guest' : ' guests') + ' by email?')) return;
+      function doSend(ids, resend, b) {
+        var subject = box.querySelector('#sj').value, message = box.querySelector('#sm').value;
         busy(b, true, 'Sending…');
-        api('host.send', { e: id, kind: kind, ids: ids, subject: box.querySelector('#sj').value, message: box.querySelector('#sm').value }).then(function (r) {
+        api('host.send', { e: id, kind: kind, ids: ids, subject: subject, message: message, resend: resend }).then(function (r) {
           var parts = ['Sent to ' + r.sent + (r.sent === 1 ? ' guest' : ' guests') + '.'];
           if (r.skipped) parts.push(r.skipped + ' skipped (already sent today).');
           if (r.quota) parts.push(r.quota + ' not sent: Gmail’s daily limit is reached. Try again tomorrow.');
           if (r.errors.length) parts.push('Problems: ' + r.errors.join('; '));
           return loadEvent(id, true).then(function (fresh) {
             res = fresh; draw();
-            box.querySelector('.send-result').textContent = parts.join(' ');
+            box.querySelector('#sj').value = subject; box.querySelector('#sm').value = message;
+            var out = box.querySelector('.send-result');
+            out.textContent = parts.join(' ') + ' ';
+            if (r.skippedIds && r.skippedIds.length) {
+              var again = document.createElement('button');
+              again.type = 'button'; again.className = 'btn sm';
+              again.textContent = 'Send again to ' + r.skippedIds.length;
+              again.addEventListener('click', function () {
+                if (!confirm('Send this ' + KINDS[kind].label.toLowerCase() + ' again to ' + r.skippedIds.length + (r.skippedIds.length === 1 ? ' guest' : ' guests') + ' who already got it today?')) return;
+                doSend(r.skippedIds, true, again);
+              });
+              out.appendChild(again);
+            }
           });
         }).catch(function (err) { busy(b, false); showError(err); });
+      }
+      on(box, '[data-act="send"]', 'click', function (e, b) {
+        var ids = res.guests.filter(function (g) { return picked[g.id] && g.email; }).map(function (g) { return g.id; });
+        if (!confirm('Send this ' + KINDS[kind].label.toLowerCase() + ' to ' + ids.length + (ids.length === 1 ? ' guest' : ' guests') + ' by email?')) return;
+        doSend(ids, false, b);
       });
     }
 

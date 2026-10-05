@@ -161,6 +161,9 @@ test('sending: email vs text-only, once per day, invite tracking', () => {
   assert.match(mail.html, /diwali\.html\?e=/);
   const again = t.call('host.send', { k: 'OWNER', e: id, kind: 'invite', ids });
   assert.strictEqual(again.skipped, 1, 'never the same email twice in a day');
+  assert.deepStrictEqual(again.skippedIds.length, 1);
+  const forced = t.call('host.send', { k: 'OWNER', e: id, kind: 'invite', ids: again.skippedIds, resend: true });
+  assert.strictEqual(forced.sent, 1, 'host can explicitly send again');
   const after = t.call('host.event', { k: 'OWNER', e: id }).guests.find((g) => g.email);
   assert.strictEqual(after.inviteVia, 'email');
   assert.ok(after.invitedAt);

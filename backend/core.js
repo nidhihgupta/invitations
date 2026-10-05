@@ -385,9 +385,9 @@ var InviteCore = (function () {
       } catch (err) { log(ev.id, g.id, 'notify_failed', String(err && err.message || err)); }
     }
 
-    function sendBatch(ev, d, kind, guests, overrides) {
+    function sendBatch(ev, d, kind, guests, overrides, resend) {
       var today = svc.today();
-      var res = { sent: 0, skipped: 0, quota: 0, textOnly: [], errors: [] };
+      var res = { sent: 0, skipped: 0, skippedIds: [], quota: 0, textOnly: [], errors: [] };
       var replyTo = hostEmails(ev, d)[0] || '';
       guests.forEach(function (g) {
         var sends = json(g.sends, {});
@@ -395,7 +395,8 @@ var InviteCore = (function () {
           res.textOnly.push({ id: g.id, name: g.name, mobile: g.mobile, link: guestLink(ev, d, g) });
           return;
         }
-        if (sends[kind] === today) { res.skipped++; return; }
+        // Never the same email twice in a day, unless the host explicitly asks to send again.
+        if (sends[kind] === today && !resend) { res.skipped++; res.skippedIds.push(g.id); return; }
         if (svc.emailQuota() <= 0) { res.quota++; return; }
         var m = buildEmail(kind, ev, d, g, overrides);
         try {
@@ -666,7 +667,7 @@ var InviteCore = (function () {
       var ids = Array.isArray(req.ids) ? req.ids : [];
       if (!ids.length) throw fail('invalid', 'Choose at least one guest.');
       var list = guestsOf(ev.id).filter(function (g) { return ids.indexOf(g.id) >= 0; });
-      var res = sendBatch(ev, d, kind, list, { subject: str(req.subject, 300), message: str(req.message, 4000) });
+      var res = sendBatch(ev, d, kind, list, { subject: str(req.subject, 300), message: str(req.message, 4000) }, req.resend === true);
       log(ev.id, '', 'batch_' + kind, h.name + ': ' + res.sent + ' sent');
       return res;
     };
