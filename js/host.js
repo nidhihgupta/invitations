@@ -497,7 +497,7 @@
     ['venue', 'Venue', 'text', 'For example: The Gupta home'],
     ['address', 'Address', 'text', 'Guests get a map link.'],
     ['rsvpBy', 'RSVP by', 'date'],
-    ['text.hostNames', 'Host names', 'text', 'Shown as “Hosted by …”. Also signs the emails.']
+    ['text.hostNames', 'Hosted by (shown on the card)', 'text', 'Just the words guests read, e.g. “Nidhi, Bhaskar & Niva”. Also signs the emails. Doesn’t give anyone access.']
   ];
   var WORDING_FIELDS = [
     ['text.greeting', 'Greeting', 'Leave blank to hide.'],
@@ -621,7 +621,7 @@
       field('email.daybeforeSubject', '“See you tomorrow” subject') + area('email.daybeforeMessage', '“See you tomorrow” message', 5) +
       '</section>' +
 
-      (hosts ? '<section><h2>Hosts</h2><p class="muted small">Hosts can edit this event and see replies. Add family members on the <a href="#/hosts">Hosts</a> page.</p>' +
+      (hosts ? '<section><h2>Who can manage this event</h2><p class="muted small">People ticked here can sign in, edit this event and see replies. This is separate from the “Hosted by” wording guests see. Add family members on the <a href="#/hosts">Hosts</a> page.</p>' +
         hosts.map(function (h) {
           return '<label class="check"><input type="checkbox" data-host="' + esc(h.key) + '"' + (h.assigned ? ' checked' : '') + '><span>' + esc(h.name) + (h.role === 'owner' ? ' <small class="muted">(owner)</small>' : '') + '</span></label>';
         }).join('') + '</section>' : '') +
@@ -727,11 +727,12 @@
         '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th><span class="sr">Actions</span></th></tr></thead><tbody>' +
         res.hosts.map(function (h) {
           return '<tr><td><strong>' + esc(h.name) + '</strong></td><td>' + esc(h.email) + '</td><td>' + (h.role === 'owner' ? 'Owner' : 'Host') + '</td>' +
-            '<td class="row-actions"><button class="btn sm" type="button" data-copy="' + esc(h.link) + '">Copy host link</button>' +
+            '<td class="row-actions"><button class="btn sm" type="button" data-edit-host="' + esc(h.key) + '">Edit</button>' +
+            '<button class="btn sm" type="button" data-copy="' + esc(h.link) + '">Copy host link</button>' +
             '<button class="btn sm" type="button" data-reset="' + esc(h.key) + '">Reset link</button>' +
             (h.role === 'owner' ? '' : '<button class="btn sm danger" type="button" data-rm="' + esc(h.key) + '">Remove</button>') + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<p class="muted small">To make a family member a host of an event, tick their name under Hosts when editing that event. Events they create are theirs automatically.</p>');
+        '<p class="muted small">To let a family member manage an event, tick their name under “Who can manage this event” when editing it. Events they create are theirs automatically.</p>');
       on(app, '.add-host', 'submit', function (e, f) {
         e.preventDefault();
         api('host.saveHost', { host: { name: f.name.value, email: f.email.value } }).then(function (r) {
@@ -740,6 +741,22 @@
         }).catch(showError);
       });
       on(app, '[data-copy]', 'click', function (e, b) { copy(b.getAttribute('data-copy'), 'Host link'); });
+      on(app, '[data-edit-host]', 'click', function (e, b) {
+        var h = res.hosts.filter(function (x) { return x.key === b.getAttribute('data-edit-host'); })[0];
+        openDialog('<h2>Edit host</h2><form novalidate>' +
+          '<div class="f"><label for="eh-n">Name</label><input id="eh-n" name="name" value="' + esc(h.name) + '"></div>' +
+          '<div class="f"><label for="eh-e">Email (for reply notifications)</label><input id="eh-e" name="email" type="email" value="' + esc(h.email) + '"></div>' +
+          '<div class="dlg-actions"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button></div></form>',
+        function (dlg) {
+          on(dlg, 'form', 'submit', function (ev, f) {
+            ev.preventDefault();
+            api('host.saveHost', { host: { key: h.key, name: f.name.value, email: f.email.value } }).then(function () {
+              dlg.close(); S.me = null; toast('Host saved');
+              api('host.me').then(function (me) { S.me = me; viewHosts(); });
+            }).catch(showError);
+          });
+        });
+      });
       on(app, '[data-reset]', 'click', function (e, b) {
         if (!confirm('Reset this host link? The old link stops working right away.')) return;
         api('host.resetHostKey', { key: b.getAttribute('data-reset') }).then(function (r) {
