@@ -64,7 +64,7 @@ var InviteCore = (function () {
   function values(list) { return list.map(function (x) { return x.value; }); }
 
   // Bump whenever this file changes, so the host page can tell when the Apps Script copy is out of date.
-  var VERSION = '2026-10-05.3';
+  var VERSION = '2026-10-06.1';
 
   var MAX_PARTY = 10;
 
@@ -338,11 +338,12 @@ var InviteCore = (function () {
         '<tr><td style="padding:36px 32px 6px;text-align:center;font-family:' + D + ';font-size:32px;line-height:1.2;color:' + DARK + '">' + e(d.text.title || '') + '</td></tr>' +
         '<tr><td align="center" style="padding:6px 0 18px"><div style="width:64px;height:1px;background:' + A + ';line-height:1px;font-size:1px">&nbsp;</div></td></tr>' +
         '<tr><td style="padding:0 40px 8px;font-family:' + D + ';font-size:18px;line-height:1.6;color:' + DARK + '">' + paras + '</td></tr>' +
-        '<tr><td style="padding:4px 32px 24px">' +
+        // The envelope keeps an envelope's shape (about 3:2) instead of stretching to the email's width.
+        '<tr><td align="center" style="padding:4px 12px 26px">' +
         '<a href="' + e(link) + '" style="text-decoration:none;display:block">' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:' + ENV + ';border:1px solid ' + A + ';border-radius:6px;border-collapse:separate">' +
-        '<tr><td align="right" style="padding:14px 14px 0"><img src="' + e(stampImage(d)) + '" width="200" height="109" alt="" style="display:block;border:0;width:200px;height:auto"></td></tr>' +
-        '<tr><td align="center" style="padding:18px 24px 66px;font-family:' + D + ';font-style:italic;font-size:34px;line-height:1.2;color:' + INK + '">' + e(g.name) + '</td></tr>' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" width="380" height="240" align="center" style="width:380px;max-width:100%;height:240px;background:' + ENV + ';border:1px solid ' + A + ';border-radius:4px;border-collapse:separate">' +
+        '<tr><td align="right" valign="top" height="76" style="height:76px;padding:12px 12px 0"><img src="' + e(stampImage(d)) + '" width="140" height="76" alt="" style="display:block;border:0;width:140px;height:auto"></td></tr>' +
+        '<tr><td align="center" valign="middle" style="padding:0 20px 30px;font-family:' + D + ';font-style:italic;font-size:23px;line-height:1.25;color:' + INK + '">' + e(g.name) + '</td></tr>' +
         '</table></a></td></tr>' +
         '<tr><td align="center" style="padding:0 24px 34px"><a href="' + e(link) + '" style="display:inline-block;background:' + ENV + ';color:' + INK +
         ';padding:15px 30px;border-radius:6px;text-decoration:none;font-family:' + S + ';font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase">Open your invitation</a></td></tr>' +

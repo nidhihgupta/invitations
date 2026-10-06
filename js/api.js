@@ -97,7 +97,7 @@ window.Api = (function () {
     var data = {
       theme: 'diwali', template: 'classic', colors: { ground: '#1A1230', accent: '#D4AF5F' },
       text: { title: 'A Diwali Evening', hostNames: 'Nidhi & family' },
-      date: date, startTime: '19:00', endTime: '23:00', venue: 'The Gupta home', address: '123 Lantern Lane, Fremont, CA',
+      date: date, startTime: '19:00', endTime: '23:00', venue: 'Our home', address: '123 Lantern Lane, Fremont, CA',
       rsvpBy: rsvp,
       settings: { openLink: true, showGuestList: true, addressVisibility: 'all', notifyHosts: true, cohostEmails: '',
         customQuestion: 'Any dietary needs we should know about?', autoRemindDays: 3, dayBeforeEmail: true },

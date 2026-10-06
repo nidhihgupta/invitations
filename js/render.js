@@ -37,9 +37,13 @@ window.Render = (function () {
     var n = list.reduce(function (s, a) { return s + a.count; }, 0);
     if (!list.length) return '';
     return '<section class="who" aria-label="Who is coming"><h2>Who’s coming</h2><p>' + n + (n === 1 ? ' guest' : ' guests') + ' so far</p><ul>' +
-      list.map(function (a) { return '<li>' + esc(a.name) + (a.count > 1 ? ' <small>+' + (a.count - 1) + '</small>' : '') + '</li>'; }).join('') +
-      '</ul></section>';
+      list.map(function (a) {
+        return '<li><span class="n">' + esc(a.name) + '</span><span class="c">' + a.count + (a.count === 1 ? ' guest' : ' guests') + '</span></li>';
+      }).join('') + '</ul></section>';
   }
+
+  // Thin gold rule with a small diamond in the middle, between sections.
+  function sep() { return '<div class="sep" aria-hidden="true"><span></span><i></i><span></span></div>'; }
 
   function party(adults, kids) {
     var p = [];
@@ -147,5 +151,5 @@ window.Render = (function () {
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
 
-  return { details: details, who: who, form: form, thanks: thanks, closed: closed, party: party, downloadIcs: downloadIcs, gcalUrl: gcalUrl };
+  return { details: details, who: who, sep: sep, form: form, thanks: thanks, closed: closed, party: party, downloadIcs: downloadIcs, gcalUrl: gcalUrl };
 })();

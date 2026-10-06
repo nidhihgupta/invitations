@@ -514,7 +514,7 @@
     ['date', 'Date', 'date', 'Required.'],
     ['startTime', 'Start time', 'time'],
     ['endTime', 'End time (optional)', 'time'],
-    ['venue', 'Venue', 'text', 'For example: The Gupta home'],
+    ['venue', 'Venue', 'text', 'For example: Our home, or the name of the hall'],
     ['address', 'Address', 'text', 'Guests get a map link.'],
     ['rsvpBy', 'RSVP by', 'date'],
     ['text.hostNames', 'Hosted by (shown on the card)', 'text', 'Just the words guests read, e.g. “Nidhi, Bhaskar & Niva”. Also signs the emails. Doesn’t give anyone access.']
@@ -677,7 +677,7 @@
       pv.className = 'pv ' + Themes.classes(ev);
       pv.setAttribute('style', Themes.vars(ev));
       if (mode === 'envelope') pv.innerHTML = '<div class="pv-env">' + theme.envelope(ev, 'Priya Sharma') + '</div>';
-      else if (mode === 'phone') pv.innerHTML = '<div class="pv-phone"><div class="narrow">' + theme.hero(ev) + '</div><div class="below">' + Render.details(ev, t) + Render.form(ev, t, null, { inert: true }) + '</div></div>';
+      else if (mode === 'phone') pv.innerHTML = '<div class="pv-phone"><div class="narrow">' + theme.hero(ev) + '</div><div class="below">' + Render.details(ev, t) + Render.sep() + Render.form(ev, t, null, { inert: true }) + '</div></div>';
       else pv.innerHTML = theme.card(ev);
       var env = pv.querySelector('.envelope');
       if (env) env.addEventListener('click', function () { env.classList.toggle('open'); });

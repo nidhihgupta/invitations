@@ -52,20 +52,26 @@
 .t-diwali .narrow .sub { font-size: 19px; }
 .t-diwali .narrow .host { font-size: 18px; }
 
-.t-diwali .details { margin: 32px 24px 0; padding: 20px 0; border-top: 1px solid var(--line, var(--gold)); border-bottom: 1px solid var(--line, var(--gold)); display: flex; flex-direction: column; gap: 16px; }
+.t-diwali .details { margin: 32px 24px 0; padding: 20px 0 0; border-top: 1px solid var(--line, var(--gold)); display: flex; flex-direction: column; gap: 16px; }
 .t-diwali .details .row { display: flex; gap: 14px; align-items: flex-start; color: var(--line, var(--gold)); }
 .t-diwali .details .row svg { flex: none; margin-top: 1px; }
 .t-diwali .details .row span { color: var(--cream); font-size: 16px; line-height: 1.4; }
 .t-diwali .details .row a { color: var(--line, var(--gold)); text-underline-offset: 3px; }
 .t-diwali .details p { margin: 0; font-size: 14px; color: var(--muted); }
 
-.t-diwali .who { margin: 40px 24px 0; text-align: center; }
-.t-diwali .who h2 { margin: 0 0 6px; font-family: var(--display); font-weight: 500; font-size: 26px; }
-.t-diwali .who p { margin: 0 0 14px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-.t-diwali .who ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; font-family: var(--display); font-style: italic; font-size: 19px; color: var(--cream-2); }
-.t-diwali .who li small { font-family: var(--body); font-style: normal; font-size: 12px; color: var(--muted); }
+.t-diwali .sep { display: flex; align-items: center; gap: 12px; margin: 36px 24px 0; }
+.t-diwali .sep span { flex: 1; height: 1px; background: var(--line, var(--gold)); opacity: .6; }
+.t-diwali .sep i { width: 9px; height: 9px; border: 1px solid var(--line, var(--gold)); transform: rotate(45deg); }
 
-.t-diwali .rsvp { margin: 48px 24px 0; display: flex; flex-direction: column; gap: 18px; }
+.t-diwali .who { margin: 32px 24px 0; }
+.t-diwali .who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 500; font-size: 26px; }
+.t-diwali .who p { margin: 6px 0 16px; text-align: center; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+.t-diwali .who ul { list-style: none; margin: 0; padding: 0; }
+.t-diwali .who li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 7px 4px; }
+.t-diwali .who .n { font-family: var(--display); font-style: italic; font-size: 20px; color: var(--cream); }
+.t-diwali .who .c { flex: none; font-size: 13px; letter-spacing: 1px; color: var(--muted); }
+
+.t-diwali .rsvp { margin: 32px 24px 0; display: flex; flex-direction: column; gap: 18px; }
 .t-diwali .rsvp h2, .t-diwali .thanks h2, .t-diwali .closed h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 30px; text-align: center; }
 .t-diwali .choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0; padding: 0; margin: 0; }
 .t-diwali .choice legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -86,7 +92,7 @@
 .t-diwali .send:disabled { opacity: .6; cursor: progress; }
 .t-diwali .form-error { margin: 0; padding: 12px 14px; border: 1px solid #E39B2C; border-radius: 6px; font-size: 14px; color: var(--cream); }
 
-.t-diwali .thanks, .t-diwali .closed { margin: 48px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding-top: 24px; }
+.t-diwali .thanks, .t-diwali .closed { margin: 24px 24px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding-top: 24px; }
 .t-diwali .thanks h2 { font-style: italic; font-size: 34px; }
 .t-diwali .thanks p, .t-diwali .closed p { margin: 0; font-size: 15px; color: var(--muted); line-height: 1.5; }
 .t-diwali .thanks .summary { color: var(--cream-2); }

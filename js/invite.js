@@ -94,7 +94,9 @@
 
   function renderBelow() {
     var below = app.querySelector('.below');
-    below.innerHTML = Render.details(S.ev, S.t) + Render.who(S.who) + '<div id="reply"></div>';
+    // Details, then the reply, then who's coming, each set apart by a diamond rule.
+    var who = Render.who(S.who);
+    below.innerHTML = Render.details(S.ev, S.t) + Render.sep() + '<div id="reply"></div>' + (who ? Render.sep() + who : '');
     renderReply();
   }
 
