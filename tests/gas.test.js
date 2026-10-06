@@ -22,6 +22,7 @@ function fakeSpreadsheet() {
         const rng = {
           setNumberFormat: () => rng,
           setFontWeight: () => rng,
+          getValue: () => (grid[row - 1] || [])[col - 1] ?? '',
           setValue: (v) => { while (grid.length < row) grid.push([]); grid[row - 1][col - 1] = v; return rng; },
           setValues: (vals) => {
             vals.forEach((r, i) => {
@@ -71,7 +72,7 @@ function loadGas() {
       getUuid: () => { uuid++; return ('0000000' + uuid).slice(-8) + '-aaaa-4bbb-8ccc-dddddddddddd'; }
     },
     MailApp: { sendEmail: (o) => mail.push(o), getRemainingDailyQuota: () => 100 },
-    CacheService: { getScriptCache: () => ({ get: (k) => cache[k] || null, put: (k, v) => { cache[k] = v; } }) },
+    CacheService: { getScriptCache: () => ({ get: (k) => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = v; }, remove: (k) => { delete cache[k]; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock: () => {}, releaseLock: () => {} }) },
     ScriptApp: {
       getProjectTriggers: () => triggers,
@@ -86,7 +87,7 @@ function loadGas() {
   vm.runInContext(fs.readFileSync(path.join(dir, 'core.js'), 'utf8'), ctx, { filename: 'Core.gs' });
   vm.runInContext(fs.readFileSync(path.join(dir, 'Code.gs'), 'utf8'), ctx, { filename: 'Code.gs' });
   const post = (body) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).body);
-  return { ctx, ss, props, mail, triggers, logs, post };
+  return { ctx, ss, props, mail, triggers, logs, post, cache };
 }
 
 test('setup creates tabs, owner, trigger and prints the host link; idempotent', () => {
@@ -130,4 +131,36 @@ test('full round trip through doPost and the Sheet', () => {
   assert.ok(del.ok);
   assert.strictEqual(g.ss.sheets.Guests.grid.length, 2);
   assert.strictEqual(g.post('not json').ok, false);
+});
+
+test('reads use the cache, writes read the Sheet and refresh it', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  const key = g.ss.sheets.Hosts.grid[1][0];
+  const data = { theme: 'diwali', text: { title: 'Party' }, date: '2026-11-07', settings: {}, email: {} };
+  const ev = g.post({ action: 'host.saveEvent', k: key, event: { data } });
+  const guest = g.post({ action: 'host.saveGuest', k: key, e: ev.id, guest: { name: 'Priya', email: 'p@x.co' } }).guest;
+  // A view fills the cache; a hand edit in the Sheet is not seen by views until the cache expires...
+  g.post({ action: 'invite.get', e: ev.id, g: guest.id }); // first view records "opened" (a write)
+  g.post({ action: 'invite.get', e: ev.id, g: guest.id });
+  assert.ok(g.cache['tbl:Guests'], 'guests tab cached after a read');
+  assert.ok(g.ss.sheets.Guests.grid[1][14], 'opened time written to its cell');
+  g.ss.sheets.Guests.grid[1][2] = 'Priya Edited';
+  assert.strictEqual(g.post({ action: 'invite.get', e: ev.id, g: guest.id }).guest.name, 'Priya', 'served from cache');
+  // ...but a write always reads the Sheet, so it never writes old data back.
+  const rep = g.post({ action: 'invite.reply', e: ev.id, g: guest.id, attending: 'yes', name: 'Priya S', adults: 1 });
+  assert.ok(rep.ok, rep.message);
+  assert.strictEqual(g.post({ action: 'invite.get', e: ev.id, g: guest.id }).guest.status, 'yes', 'cache cleared after write');
+  const row = g.ss.sheets.Guests.grid[1];
+  assert.strictEqual(row[2], 'Priya S');
+  assert.strictEqual(row[6], 'yes');
+});
+
+test('host.me reports both backend file versions', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  const me = g.post({ action: 'host.me', k: g.ss.sheets.Hosts.grid[1][0] });
+  const Core = require('../backend/core.js');
+  assert.strictEqual(me.version, Core.VERSION);
+  assert.strictEqual(me.codeVersion, Core.CODE_VERSION, 'Code.gs and core.js versions agree');
 });

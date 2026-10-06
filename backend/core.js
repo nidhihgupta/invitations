@@ -64,7 +64,9 @@ var InviteCore = (function () {
   function values(list) { return list.map(function (x) { return x.value; }); }
 
   // Bump whenever this file changes, so the host page can tell when the Apps Script copy is out of date.
-  var VERSION = '2026-10-06.1';
+  var VERSION = '2026-10-06.2';
+  // The Code.gs version this site expects (Code.gs sets CODE_VERSION).
+  var CODE_VERSION = '2026-10-06.2';
 
   var MAX_PARTY = 10;
 
@@ -521,7 +523,8 @@ var InviteCore = (function () {
       var list = events().filter(function (ev) { return isOwner(h) || hostKeys(ev).indexOf(h.key) >= 0; }).map(summary);
       var up = list.filter(function (s) { return s.date >= today; }).sort(function (a, b) { return a.date.localeCompare(b.date); });
       var past = list.filter(function (s) { return s.date < today; }).sort(function (a, b) { return b.date.localeCompare(a.date); });
-      return { host: { name: h.name, email: h.email, role: h.role }, upcoming: up, past: past, today: today, version: VERSION };
+      return { host: { name: h.name, email: h.email, role: h.role }, upcoming: up, past: past, today: today, version: VERSION,
+        codeVersion: typeof CODE_VERSION_GS !== 'undefined' ? CODE_VERSION_GS : '' };
     };
 
     function hostGuest(ev, d, g) {
@@ -806,7 +809,7 @@ var InviteCore = (function () {
   }
 
   return {
-    VERSION: VERSION, TABLES: TABLES, THEMES: THEMES, paletteOf: paletteOf, MAX_PARTY: MAX_PARTY, EMAIL_DEFAULTS: EMAIL_DEFAULTS,
+    VERSION: VERSION, CODE_VERSION: CODE_VERSION, TABLES: TABLES, THEMES: THEMES, paletteOf: paletteOf, MAX_PARTY: MAX_PARTY, EMAIL_DEFAULTS: EMAIL_DEFAULTS,
     SETTINGS_DEFAULTS: SETTINGS_DEFAULTS, fmt: fmt, addDays: addDays, parseYmd: parseYmd,
     normalizeData: normalizeData, parseGuestLines: parseGuestLines, isEmail: isEmail, isPhone: isPhone,
     create: create

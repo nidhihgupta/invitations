@@ -8,6 +8,9 @@
 
 var DEFAULT_SITE_URL = 'https://nidhihgupta.github.io/invitations';
 
+// Bump with each change to this file; the host page warns when it doesn't match the site.
+var CODE_VERSION_GS = '2026-10-06.2';
+
 function doPost(e) {
   var req;
   try {
@@ -15,14 +18,19 @@ function doPost(e) {
   } catch (err) {
     return respond({ ok: false, error: 'bad_request', message: 'Request was not valid JSON.' });
   }
+  // Viewing an invitation only reads (plus one safe single-cell write), so it skips the lock and
+  // never waits behind other requests. Everything that changes data takes the lock.
+  if (READ_ONLY[req && req.action]) return respond(core(false).handle(req));
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) return respond({ ok: false, error: 'busy', message: 'Busy, please try again.' });
   try {
-    return respond(core().handle(req));
+    return respond(core(true).handle(req));
   } finally {
     lock.releaseLock();
   }
 }
+
+var READ_ONLY = { 'invite.get': true, 'host.me': true, 'host.event': true, 'host.hosts': true, 'host.previewEmail': true };
 
 function doGet() {
   return respond({ ok: true, service: 'invitations' });
@@ -32,8 +40,9 @@ function respond(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function core() {
-  return InviteCore.create(new SheetStore(SpreadsheetApp.getActiveSpreadsheet()), services());
+// fresh = true for requests that change data: they always read the Sheet itself, never the cache.
+function core(fresh) {
+  return InviteCore.create(new SheetStore(SpreadsheetApp.getActiveSpreadsheet(), fresh), services());
 }
 
 function services() {
@@ -66,8 +75,9 @@ function services() {
 
 /* ---------- Sheet-backed store ---------- */
 
-function SheetStore(ss) {
+function SheetStore(ss, fresh) {
   this.ss = ss;
+  this.fresh = !!fresh;
   this.cache = {};
 }
 
@@ -77,10 +87,39 @@ SheetStore.prototype.sheet = function (table) {
   return sh;
 };
 
+// Sheet reads are the slowest part of Apps Script, so each tab's values are also kept in the
+// script cache for a few minutes. Every write clears that tab's cached copy.
+var CACHE_SECONDS = 300;
+
+function tableCache() { return CacheService.getScriptCache(); }
+
+// Each write also changes the tab's "stamp", so a read that overlapped a write never caches old data.
+SheetStore.prototype.forget = function (table) {
+  try {
+    tableCache().remove('tbl:' + table);
+    tableCache().put('ver:' + table, Utilities.getUuid(), 21600);
+  } catch (e) { /* cache is optional */ }
+};
+
 SheetStore.prototype.load = function (table) {
   if (this.cache[table]) return this.cache[table];
   var sh = this.sheet(table);
-  var values = sh.getDataRange().getValues();
+  var values = null, stamp = null;
+  try {
+    stamp = tableCache().get('ver:' + table);
+    var hit = this.fresh ? null : tableCache().get('tbl:' + table);
+    if (hit) values = JSON.parse(hit);
+  } catch (e) { values = null; }
+  if (!values) {
+    values = sh.getDataRange().getValues().map(function (r) {
+      return r.map(function (v) { return v instanceof Date ? v.toISOString() : v; });
+    });
+    try {
+      var json = JSON.stringify(values);
+      var same = tableCache().get('ver:' + table) === stamp;
+      if (json.length < 95000 && (this.fresh || same)) tableCache().put('tbl:' + table, json, CACHE_SECONDS);
+    } catch (e) { /* too big or cache unavailable: read the Sheet next time */ }
+  }
   var headers = values[0].map(String);
   var rows = values.slice(1).map(function (r) {
     var o = {};
@@ -106,6 +145,7 @@ SheetStore.prototype.insert = function (table, obj) {
   var t = this.load(table);
   var row = this.toRow(t, obj);
   t.sheet.getRange(t.rows.length + 2, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+  this.forget(table);
   var o = {};
   t.headers.forEach(function (h, i) { o[h] = row[i]; });
   t.rows.push(o);
@@ -117,7 +157,17 @@ SheetStore.prototype.update = function (table, idField, id, patch) {
   for (var i = 0; i < t.rows.length; i++) {
     if (t.rows[i][idField] === id) {
       var o = t.rows[i];
-      Object.keys(patch).forEach(function (k) { if (t.headers.indexOf(k) >= 0) o[k] = String(patch[k]); });
+      var keys = Object.keys(patch).filter(function (k) { return t.headers.indexOf(k) >= 0; });
+      keys.forEach(function (k) { o[k] = String(patch[k]); });
+      this.forget(table);
+      if (keys.length === 1) {
+        // A single field (e.g. "opened at", written without the lock): write just that cell,
+        // and only if the row still holds the same record.
+        var idCol = t.headers.indexOf(idField) + 1;
+        if (String(t.sheet.getRange(i + 2, idCol).getValue()) !== String(id)) return o;
+        t.sheet.getRange(i + 2, t.headers.indexOf(keys[0]) + 1).setNumberFormat('@').setValue(o[keys[0]]);
+        return o;
+      }
       var row = this.toRow(t, o);
       t.sheet.getRange(i + 2, 1, 1, row.length).setNumberFormat('@').setValues([row]);
       return o;
@@ -132,6 +182,7 @@ SheetStore.prototype.remove = function (table, idField, id) {
     if (t.rows[i][idField] === id) {
       t.sheet.deleteRow(i + 2);
       t.rows.splice(i, 1);
+      this.forget(table);
       return true;
     }
   }
@@ -151,6 +202,7 @@ function ensureSheet(ss, table) {
   sh.getRange(1, 1, 1, have.length).setFontWeight('bold');
   sh.setFrozenRows(1);
   sh.getRange(1, 1, sh.getMaxRows(), have.length).setNumberFormat('@');
+  try { CacheService.getScriptCache().remove('tbl:' + table); } catch (e) { /* optional */ }
   return sh;
 }
 
@@ -170,7 +222,7 @@ function setup() {
   var props = PropertiesService.getScriptProperties();
   if (!props.getProperty('SITE_URL')) props.setProperty('SITE_URL', DEFAULT_SITE_URL);
 
-  var store = new SheetStore(ss), svc = services();
+  var store = new SheetStore(ss, true), svc = services();
   var owner = store.all('Hosts').filter(function (h) { return h.role === 'owner'; })[0];
   if (!owner) {
     var email = Session.getEffectiveUser().getEmail();
@@ -190,7 +242,7 @@ function dailyJob() {
   var lock = LockService.getScriptLock();
   lock.waitLock(60000);
   try {
-    var report = core().daily();
+    var report = core(true).daily();
     if (report.length) Logger.log(JSON.stringify(report));
   } finally {
     lock.releaseLock();
@@ -199,7 +251,7 @@ function dailyJob() {
 
 /** Prints the owner's host link again, in case you lose it. */
 function showOwnerLink() {
-  var store = new SheetStore(SpreadsheetApp.getActiveSpreadsheet()), svc = services();
+  var store = new SheetStore(SpreadsheetApp.getActiveSpreadsheet(), true), svc = services();
   store.all('Hosts').filter(function (h) { return h.role === 'owner'; }).forEach(function (h) {
     Logger.log(h.name + ': ' + svc.siteUrl.replace(/\/+$/, '') + '/host.html#k=' + h.key);
   });
@@ -207,7 +259,7 @@ function showOwnerLink() {
 
 /** If your owner link leaks: run this, then use the new link it prints. */
 function resetOwnerKey() {
-  var store = new SheetStore(SpreadsheetApp.getActiveSpreadsheet()), svc = services();
+  var store = new SheetStore(SpreadsheetApp.getActiveSpreadsheet(), true), svc = services();
   store.all('Hosts').filter(function (h) { return h.role === 'owner'; }).forEach(function (h) {
     var nk = svc.random(32);
     store.update('Hosts', 'key', h.key, { key: nk });

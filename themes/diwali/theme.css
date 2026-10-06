@@ -22,7 +22,7 @@
 .t-diwali .envelope.open .flap { transform: scaleY(-1); opacity: .35; }
 .t-diwali .envelope .to { position: absolute; left: 0; right: 0; top: 70.8%; text-align: center; container-type: inline-size; }
 .t-diwali .to small { display: block; font-size: max(10px, 1.6cqw); letter-spacing: .6cqw; text-transform: uppercase; color: var(--env-label, var(--gold)); }
-.t-diwali .to span { font-family: var(--display); font-style: italic; font-size: max(18px, 4.3cqw); color: var(--env-ink, var(--cream)); }
+.t-diwali .to span { transition: opacity .4s ease; font-family: var(--display); font-style: italic; font-size: max(18px, 4.3cqw); color: var(--env-ink, var(--cream)); }
 
 /* Invitation card 700x980 */
 .t-diwali .card { width: min(700px, 100%); aspect-ratio: 700/980; background: var(--ground); position: relative; container-type: inline-size; }

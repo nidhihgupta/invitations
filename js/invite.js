@@ -19,20 +19,40 @@
     if (pre) {
       Themes.load(pre).then(function (theme) { if (!S.ev) showEnvelope(theme, null); }).catch(function () {});
     }
+    // A returning guest sees their envelope at once from the copy saved on their device;
+    // the latest data still loads in the background.
+    var cached = readCache();
+    if (cached) use(cached);
     fetchInvite().then(function (res) {
+      writeCache(res);
+      if (!S.opened) return use(res);
+      // Already reading the card: keep what's on screen, just hold the newer data.
       S.ev = res.event; S.guest = res.guest; S.who = res.attendees;
-      return Themes.load(S.ev.theme).then(function (theme) {
-        S.theme = theme;
-        S.t = Themes.text(theme, S.ev);
-        document.title = S.t.title ? 'You’re invited: ' + S.t.title : 'You’re invited';
-        showEnvelope(theme, S.ev);
-        if (S.wantOpen) openEnvelope();
-      });
     }).catch(function (err) {
-      if (err && err.code === 'not_found') return notFound();
-      errorScreen(err);
+      if (err && err.code === 'not_found') { clearCache(); return notFound(); }
+      if (!cached) errorScreen(err);
     });
   }
+
+  function use(res) {
+    S.ev = res.event; S.guest = res.guest; S.who = res.attendees;
+    return Themes.load(S.ev.theme).then(function (theme) {
+      S.theme = theme;
+      S.t = Themes.text(theme, S.ev);
+      document.title = S.t.title ? 'You’re invited: ' + S.t.title : 'You’re invited';
+      if (!S.opened) showEnvelope(theme, S.ev);
+      if (S.wantOpen) openEnvelope();
+    });
+  }
+
+  function cacheKey() { return 'invitations-view-' + eid + '-' + (gid || 'open'); }
+  function readCache() {
+    try { var c = JSON.parse(localStorage.getItem(cacheKey())); return c && c.event ? c : null; } catch (e) { return null; }
+  }
+  function writeCache(res) {
+    try { localStorage.setItem(cacheKey(), JSON.stringify({ event: res.event, guest: res.guest, attendees: res.attendees })); } catch (e) { /* storage full or blocked */ }
+  }
+  function clearCache() { try { localStorage.removeItem(cacheKey()); } catch (e) { /* ignore */ } }
 
   function fetchInvite() {
     return Api.call('invite.get', { e: eid, g: gid }).catch(function (err) {
@@ -57,11 +77,15 @@
     var name = ev ? (S.guest ? S.guest.name : 'you') : '';
     var stage = app.querySelector('.env-stage');
     if (stage && stage.getAttribute('data-theme') === theme.id) {
-      stage.querySelector('.to span').textContent = name;
+      var span = stage.querySelector('.to span');
+      span.textContent = name;
+      span.style.opacity = name ? '1' : '0';
       return;
     }
     app.innerHTML = '<div class="env-stage" data-theme="' + theme.id + '">' + theme.envelope(ev, name) +
       '<div class="hint" aria-hidden="true">Tap to open</div></div>';
+    // Until the invitation loads, the name line stays blank (never a placeholder that then changes).
+    if (!name) app.querySelector('.to span').style.opacity = '0';
     app.querySelector('.envelope').addEventListener('click', openEnvelope);
   }
 
@@ -197,6 +221,7 @@
         S.guest = res.guest; S.ev = res.event; S.who = res.attendees; S.editing = false;
         S.revealAddress = wasHidden && !S.ev.addressHidden;
         rememberGuest(res.guestId);
+        writeCache({ event: res.event, guest: res.guest, attendees: res.attendees });
         renderBelow();
         renderReply(true);
         document.getElementById('reply').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
