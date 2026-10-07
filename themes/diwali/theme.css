@@ -74,6 +74,8 @@
 .t-diwali .rsvp { margin: 32px 24px 0; display: flex; flex-direction: column; gap: 18px; }
 .t-diwali .rsvp h2, .t-diwali .thanks h2, .t-diwali .closed h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 30px; text-align: center; }
 .t-diwali .choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0; padding: 0; margin: 0; }
+.t-diwali .choice.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.t-diwali .choice.three button { font-size: 14px; line-height: 1.25; padding: 6px 6px; }
 .t-diwali .choice legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .t-diwali .choice button { min-height: 52px; border-radius: 6px; font-family: var(--body); font-size: 15px; cursor: pointer; border: 1px solid var(--field); background: transparent; color: var(--cream); padding: 6px 8px; }
 .t-diwali .choice button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold); color: var(--ink-on-gold); font-weight: 500; }

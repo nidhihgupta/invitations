@@ -124,7 +124,7 @@
     renderReply();
   }
 
-  function replied() { return S.guest && (S.guest.status === 'yes' || S.guest.status === 'no'); }
+  function replied() { return S.guest && ['yes', 'no', 'maybe'].indexOf(S.guest.status) >= 0; }
 
   function renderReply(focus) {
     var box = document.getElementById('reply');
@@ -157,7 +157,7 @@
       b.addEventListener('click', function () {
         att = b.getAttribute('data-att');
         form.querySelectorAll('[data-att]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
-        party.hidden = att !== 'yes';
+        party.hidden = att !== 'yes' && att !== 'maybe';
         errBox.hidden = true;
       });
     });

@@ -52,20 +52,32 @@ window.Render = (function () {
     return p.join(' and ');
   }
 
+  var REPLIED = { yes: 1, no: 1, maybe: 1 };
+
+  function summaryOf(g) {
+    if (g.status === 'yes') return 'Your reply: attending, ' + party(g.adults, g.kids) + '.';
+    if (g.status === 'maybe') return 'Your reply: maybe, ' + party(g.adults, g.kids) + '.';
+    return 'Your reply: not able to attend.';
+  }
+
   function form(ev, t, guest, opts) {
     opts = opts || {};
-    var g = guest || {}, att = opts.attending || (g.status === 'yes' || g.status === 'no' ? g.status : '');
-    var adults = g.status === 'yes' ? g.adults : 1, kids = g.status === 'yes' ? g.kids : 0;
+    var g = guest || {}, att = opts.attending || (REPLIED[g.status] ? g.status : '');
+    var counted = g.status === 'yes' || g.status === 'maybe';
+    var adults = counted ? g.adults : 1, kids = counted ? g.kids : 0;
+    // Only when the backend says this event offers it (an older backend doesn't know about Maybe).
+    var maybe = !!(ev.settings && ev.settings.allowMaybe === true);
     var q = ev.settings && ev.settings.customQuestion;
     var open = !guest;
     return '<form class="rsvp" novalidate' + (opts.inert ? ' inert' : '') + '>' +
       (t.replyHeading ? '<h2>' + esc(t.replyHeading) + '</h2>' : '') +
-      '<fieldset class="choice"><legend>Will you attend?</legend>' +
+      '<fieldset class="choice' + (maybe ? ' three' : '') + '"><legend>Will you attend?</legend>' +
       '<button type="button" data-att="yes" aria-pressed="' + (att === 'yes') + '">' + esc(t.acceptLabel || 'Accepts') + '</button>' +
+      (maybe ? '<button type="button" data-att="maybe" aria-pressed="' + (att === 'maybe') + '">' + esc(t.maybeLabel || 'Maybe') + '</button>' : '') +
       '<button type="button" data-att="no" aria-pressed="' + (att === 'no') + '">' + esc(t.declineLabel || 'Declines') + '</button></fieldset>' +
       '<div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" autocomplete="name" value="' + esc(g.name || '') + '" aria-describedby="e-name"><div class="err" id="e-name"></div></div>' +
       (open ? '<div class="field"><label for="f-contact">Email or mobile number</label><input id="f-contact" name="contact" autocomplete="email" aria-describedby="e-contact"><div class="err" id="e-contact"></div></div>' : '') +
-      '<div class="party"' + (att === 'yes' ? '' : ' hidden') + '>' +
+      '<div class="party"' + (att === 'yes' || att === 'maybe' ? '' : ' hidden') + '>' +
       stepper('adults', 'Adults, including you', adults, 1) +
       stepper('kids', 'Children', kids, 0) + '</div>' +
       (q ? '<div class="field"><label for="f-answer">' + esc(q) + '</label><input id="f-answer" name="answer" value="' + esc(g.answer || '') + '"></div>' : '') +
@@ -85,15 +97,16 @@ window.Render = (function () {
 
   function thanks(ev, t, guest, opts) {
     opts = opts || {};
-    var yes = guest.status === 'yes';
-    var summary = yes ? 'Your reply: attending, ' + party(guest.adults, guest.kids) + '.' : 'Your reply: not able to attend.';
+    var st = guest.status, yes = st === 'yes', counted = yes || st === 'maybe';
+    var title = yes ? t.acceptTitle : st === 'maybe' ? t.maybeTitle : t.declineTitle;
+    var body = yes ? t.acceptBody : st === 'maybe' ? t.maybeBody : t.declineBody;
     return '<div class="thanks" aria-live="polite">' +
-      '<h2 tabindex="-1">' + esc(yes ? t.acceptTitle : t.declineTitle) + '</h2>' +
-      '<p>' + esc(yes ? t.acceptBody : t.declineBody) + '</p>' +
-      '<p class="summary">' + esc(summary) + '</p>' +
+      '<h2 tabindex="-1">' + esc(title) + '</h2>' +
+      '<p>' + esc(body) + '</p>' +
+      '<p class="summary">' + esc(summaryOf(guest)) + '</p>' +
       (yes && opts.revealAddress && ev.address ? '<p class="summary">The address: <a href="' + esc(fmt.mapUrl(ev.address)) + '" target="_blank" rel="noopener" style="color:var(--gold)">' + esc(ev.address) + '</a></p>' : '') +
       '<div class="actions">' +
-      (yes ? '<button type="button" class="ghost" data-act="ics">Add to calendar</button>' +
+      (counted ? '<button type="button" class="ghost" data-act="ics">Add to calendar</button>' +
         '<a class="ghost" target="_blank" rel="noopener" href="' + esc(gcalUrl(ev, t)) + '">Google Calendar</a>' : '') +
       (opts.canChange ? '<button type="button" class="ghost" data-act="change">Change my reply</button>' : '') +
       '</div></div>';
@@ -102,8 +115,7 @@ window.Render = (function () {
   function closed(ev, t, guest) {
     var msg = ev.closed === 'past' ? 'This celebration has passed. Thank you for being part of it.' :
       'Replies are now closed. If your plans have changed, please reach out to the hosts directly.';
-    var mine = guest && (guest.status === 'yes' || guest.status === 'no') ?
-      '<p class="summary">' + esc(guest.status === 'yes' ? 'Your reply: attending, ' + party(guest.adults, guest.kids) + '.' : 'Your reply: not able to attend.') + '</p>' : '';
+    var mine = guest && REPLIED[guest.status] ? '<p class="summary">' + esc(summaryOf(guest)) + '</p>' : '';
     return '<div class="closed"><h2>' + (ev.closed === 'past' ? 'With thanks' : 'Replies are closed') + '</h2><p>' + esc(msg) + '</p>' + mine + '</div>';
   }
 

@@ -134,7 +134,7 @@
 
   function countsLine(c) {
     return '<strong>' + c.total + '</strong> attending' + (c.total ? ' (' + c.adults + ' adults, ' + c.kids + ' kids)' : '') +
-      ' · ' + c.no + ' declined · ' + c.pending + ' awaiting';
+      ' · ' + (c.maybe ? c.maybe + ' maybe · ' : '') + c.no + ' declined · ' + c.pending + ' awaiting';
   }
 
   function pill(status, closed) {
@@ -171,7 +171,8 @@
     return api('host.event', { e: id }).then(function (res) { S.ev = res; S.evId = id; return res; });
   }
 
-  var STATUS = { yes: 'Attending', no: 'Declined', pending: 'Awaiting' };
+  var STATUS = { yes: 'Attending', maybe: 'Maybe', no: 'Declined', pending: 'Awaiting' };
+  function counted(g) { return g.status === 'yes' || g.status === 'maybe'; }
 
   function viewEvent(id, tab) {
     if (!(S.ev && S.evId === id)) loading();
@@ -249,7 +250,7 @@
         list.map(function (g) {
           return '<tr><td><strong>' + esc(g.name) + '</strong><div class="muted small">' + esc(g.email || g.mobile) + (g.source === 'open' ? ' · via open link' : '') + '</div></td>' +
             '<td><span class="st st-' + g.status + '">' + STATUS[g.status] + '</span></td>' +
-            '<td class="num">' + (g.status === 'yes' ? g.adults : '') + '</td><td class="num">' + (g.status === 'yes' ? g.kids : '') + '</td>' +
+            '<td class="num">' + (counted(g) ? g.adults : '') + '</td><td class="num">' + (counted(g) ? g.kids : '') + '</td>' +
             (q ? '<td>' + esc(g.answer) + '</td>' : '') + '<td>' + esc(g.note) + '</td>' +
             '<td class="muted small">' + (g.repliedAt ? esc(fmt.brief(g.repliedAt.slice(0, 10))) : '') + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="muted">No guests in this view.</p>';
@@ -257,12 +258,13 @@
     }
     box.innerHTML =
       '<div class="tiles">' +
-      '<div class="tile big"><span>Attending</span><strong>' + c.total + '</strong><small>' + c.adults + ' adults · ' + c.kids + ' kids</small></div>' +
+      '<div class="tile big"><span>Attending</span><strong>' + c.total + '</strong><small>' + c.adults + (c.adults === 1 ? ' adult' : ' adults') + ' · ' + c.kids + (c.kids === 1 ? ' kid' : ' kids') + '</small></div>' +
       '<div class="tile"><span>Accepted</span><strong>' + c.yes + '</strong><small>' + (c.yes === 1 ? 'reply' : 'replies') + '</small></div>' +
+      '<div class="tile"><span>Maybe</span><strong>' + (c.maybe || 0) + '</strong><small>' + (c.maybeTotal ? c.maybeTotal + ' people if they come' : (c.maybe === 1 ? 'reply' : 'replies')) + '</small></div>' +
       '<div class="tile"><span>Declined</span><strong>' + c.no + '</strong><small>' + (c.no === 1 ? 'reply' : 'replies') + '</small></div>' +
       '<div class="tile"><span>Awaiting</span><strong>' + c.pending + '</strong><small>of ' + c.guests + ' guests</small></div></div>' +
       '<div class="toolbar"><div class="filters" role="group" aria-label="Filter by reply">' +
-      [['all', 'All'], ['yes', 'Attending'], ['no', 'Declined'], ['pending', 'Awaiting']].map(function (f) {
+      [['all', 'All'], ['yes', 'Attending'], ['maybe', 'Maybe'], ['no', 'Declined'], ['pending', 'Awaiting']].map(function (f) {
         return '<button type="button" class="chip" data-filter="' + f[0] + '">' + f[1] + '</button>';
       }).join('') + '</div><button class="btn" type="button" data-act="csv">Export CSV</button></div>' +
       '<div class="table-wrap"></div>';
@@ -275,7 +277,7 @@
     var d = res.event.data, q = d.settings.customQuestion;
     var head = ['Name', 'Email', 'Mobile', 'Reply', 'Adults', 'Kids', q || 'Answer', 'Note', 'Replied at', 'Invited at', 'Invited by', 'Opened at', 'Source'];
     var rows = [head].concat(res.guests.map(function (g) {
-      return [g.name, g.email, g.mobile, STATUS[g.status], g.status === 'yes' ? g.adults : '', g.status === 'yes' ? g.kids : '', g.answer, g.note,
+      return [g.name, g.email, g.mobile, STATUS[g.status], counted(g) ? g.adults : '', counted(g) ? g.kids : '', g.answer, g.note,
         g.repliedAt, g.invitedAt, g.inviteVia, g.openedAt, g.source === 'open' ? 'Open link' : 'Guest list'];
     }));
     var csv = '﻿' + rows.map(function (r) {
@@ -321,7 +323,7 @@
         res.guests.map(function (g) {
           return '<tr><td><strong>' + esc(g.name) + '</strong></td><td class="small">' + esc(g.email) + (g.email && g.mobile ? '<br>' : '') + esc(g.mobile) + '</td>' +
             '<td class="small">' + esc(inviteState(g)) + '</td><td><span class="st st-' + g.status + '">' + STATUS[g.status] + '</span>' +
-            (g.status === 'yes' ? ' <span class="small muted">' + g.adults + '+' + g.kids + '</span>' : '') + '</td>' +
+            (counted(g) ? ' <span class="small muted">' + g.adults + '+' + g.kids + '</span>' : '') + '</td>' +
             '<td class="row-actions"><button class="btn sm" type="button" data-copy="' + esc(g.link) + '">Copy link</button>' +
             (g.mobile ? '<a class="btn sm" data-text="' + esc(g.id) + '" href="' + esc(smsHref(g.mobile, smsBody('invite', d, g))) + '">Text invite</a>' : '') +
             '<button class="btn sm" type="button" data-edit="' + esc(g.id) + '">Edit</button>' +
@@ -370,9 +372,9 @@
       '<div class="f"><label for="eg-e">Email</label><input id="eg-e" name="email" type="email" value="' + esc(g.email) + '"></div>' +
       '<div class="f"><label for="eg-m">Mobile</label><input id="eg-m" name="mobile" type="tel" value="' + esc(g.mobile) + '"></div>' +
       '<fieldset><legend>Reply (if they told you in person)</legend><div class="f"><label for="eg-s">Status</label><select id="eg-s" name="status">' +
-      ['pending', 'yes', 'no'].map(function (s) { return '<option value="' + s + '"' + (g.status === s ? ' selected' : '') + '>' + STATUS[s] + '</option>'; }).join('') +
-      '</select></div><div class="grid2"><div class="f"><label for="eg-a">Adults</label><input id="eg-a" name="adults" type="number" min="1" max="10" value="' + (g.status === 'yes' ? g.adults : 1) + '"></div>' +
-      '<div class="f"><label for="eg-k">Kids</label><input id="eg-k" name="kids" type="number" min="0" max="9" value="' + (g.status === 'yes' ? g.kids : 0) + '"></div></div></fieldset>' +
+      ['pending', 'yes', 'maybe', 'no'].map(function (s) { return '<option value="' + s + '"' + (g.status === s ? ' selected' : '') + '>' + STATUS[s] + '</option>'; }).join('') +
+      '</select></div><div class="grid2"><div class="f"><label for="eg-a">Adults</label><input id="eg-a" name="adults" type="number" min="1" max="10" value="' + (counted(g) ? g.adults : 1) + '"></div>' +
+      '<div class="f"><label for="eg-k">Kids</label><input id="eg-k" name="kids" type="number" min="0" max="9" value="' + (counted(g) ? g.kids : 0) + '"></div></div></fieldset>' +
       '<div class="dlg-actions"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button></div></form>',
     function (dlg) {
       on(dlg, 'form', 'submit', function (e, f) {
@@ -380,7 +382,7 @@
         var b = f.querySelector('[type="submit"]');
         busy(b, true, 'Saving…');
         var guest = { id: g.id, name: f.name.value, email: f.email.value, mobile: f.mobile.value };
-        if (f.status.value !== g.status || f.status.value === 'yes') { guest.status = f.status.value; guest.adults = f.adults.value; guest.kids = f.kids.value; }
+        if (f.status.value !== g.status || f.status.value === 'yes' || f.status.value === 'maybe') { guest.status = f.status.value; guest.adults = f.adults.value; guest.kids = f.kids.value; }
         api('host.saveGuest', { e: id, guest: guest }).then(function () { dlg.close(); refresh('Guest saved'); })
           .catch(function (err) { busy(b, false); showError(err); });
       });
@@ -403,7 +405,7 @@
       picked = {};
       res.guests.forEach(function (g) {
         var sel = k === 'invite' ? !g.invitedAt && g.source !== 'open' :
-          k === 'reminder' ? g.status === 'pending' && !!g.invitedAt : g.status === 'yes';
+          k === 'reminder' ? g.status === 'pending' && !!g.invitedAt : k === 'maybe' ? g.status === 'maybe' : g.status === 'yes';
         if (sel) picked[g.id] = true;
       });
     }
@@ -429,7 +431,7 @@
           }).join('') + '</div>' : '') +
         autoNote(d) +
         '</div><div><div class="recip-head"><h3>Recipients <span class="muted">(' + chosen.length + ' of ' + res.guests.length + ')</span></h3>' +
-        '<div class="filters">' + [['invite', 'Not invited yet'], ['reminder', 'Awaiting reply'], ['daybefore', 'Attending'], ['all', 'All'], ['none', 'None']].map(function (q) {
+        '<div class="filters">' + [['invite', 'Not invited yet'], ['reminder', 'Awaiting reply'], ['maybe', 'Maybe'], ['daybefore', 'Attending'], ['all', 'All'], ['none', 'None']].map(function (q) {
           return '<button type="button" class="chip" data-pick="' + q[0] + '">' + q[1] + '</button>';
         }).join('') + '</div></div><ul class="recips">' +
         res.guests.map(function (g) {
@@ -529,11 +531,14 @@
     ['text.dressCode', 'Dress code', 'Leave blank to hide.'],
     ['text.replyHeading', 'Reply heading'],
     ['text.acceptLabel', 'Accept button'],
+    ['text.maybeLabel', 'Maybe button'],
     ['text.declineLabel', 'Decline button'],
     ['text.sendLabel', 'Send button'],
     ['text.acceptTitle', 'Thank-you title (accepted)'],
     ['text.acceptBody', 'Thank-you message (accepted)'],
     ['text.declineTitle', 'Thank-you title (declined)'],
+    ['text.maybeTitle', 'Thank-you title (maybe)'],
+    ['text.maybeBody', 'Thank-you message (maybe)'],
     ['text.declineBody', 'Thank-you message (declined)']
   ];
 
@@ -622,6 +627,7 @@
       '<section><h2>Replies</h2>' +
       check('settings.openLink', 'Open link is on', 'Anyone with the event’s open link can reply. Turn off for invite-only parties.') +
       check('settings.showGuestList', 'Show guests who’s coming') +
+      check('settings.allowMaybe', 'Offer a “Maybe” reply', 'Turn off when you need a firm headcount.') +
       '<div class="f"><label for="x-av">Address</label><select id="x-av" data-path="settings.addressVisibility">' +
       '<option value="all"' + (draft.settings.addressVisibility === 'all' ? ' selected' : '') + '>Show to everyone</option>' +
       '<option value="accepted"' + (draft.settings.addressVisibility === 'accepted' ? ' selected' : '') + '>Show only after a guest accepts</option></select></div>' +

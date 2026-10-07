@@ -92,7 +92,7 @@ test('personal link: open, reply, change reply, host notified', () => {
 test('reply validation and party limits', () => {
   const t = setup();
   const id = makeEvent(t);
-  assert.strictEqual(t.call('invite.reply', { e: id, attending: 'maybe', name: 'X', contact: 'x@y.co' }).error, 'invalid');
+  assert.strictEqual(t.call('invite.reply', { e: id, attending: 'perhaps', name: 'X', contact: 'x@y.co' }).error, 'invalid');
   assert.strictEqual(t.call('invite.reply', { e: id, attending: 'yes', name: '', contact: 'x@y.co' }).error, 'invalid');
   assert.strictEqual(t.call('invite.reply', { e: id, attending: 'yes', name: 'X', contact: 'nope' }).error, 'invalid');
   assert.strictEqual(t.call('invite.reply', { e: id, attending: 'yes', name: 'X', contact: 'x@y.co', adults: 8, kids: 3 }).error, 'invalid');
@@ -249,4 +249,20 @@ test('formatting helpers', () => {
   assert.strictEqual(Core.fmt.timeRange('11:30', '14:00'), '11:30 AM – 2:00 PM');
   assert.strictEqual(Core.addDays('2026-10-31', -3), '2026-10-28');
   assert.strictEqual(Core.parseYmd('2026-02-30'), null);
+});
+
+test('maybe replies: counted separately, switchable per event', () => {
+  const t = setup();
+  const id = makeEvent(t);
+  const a = t.call('host.saveGuest', { k: 'OWNER', e: id, guest: { name: 'Asha', email: 'a@x.co' } }).guest;
+  const r = t.call('invite.reply', { e: id, g: a.id, attending: 'maybe', name: 'Asha', adults: 2, kids: 1 });
+  assert.ok(r.ok, r.message);
+  assert.strictEqual(r.guest.status, 'maybe');
+  assert.deepStrictEqual(r.attendees, [], 'maybes are not listed as coming');
+  assert.match(t.sent[0].subject, /Asha said maybe/);
+  const c = t.call('host.event', { k: 'OWNER', e: id }).counts;
+  assert.deepStrictEqual([c.maybe, c.maybeTotal, c.total], [1, 3, 0], 'not in the attending headcount');
+  const id2 = makeEvent(t, { allowMaybe: false });
+  assert.strictEqual(t.call('invite.get', { e: id2 }).event.settings.allowMaybe, false);
+  assert.strictEqual(t.call('invite.reply', { e: id2, attending: 'maybe', name: 'X', contact: 'x@y.co' }).error, 'invalid');
 });

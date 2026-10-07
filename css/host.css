@@ -75,7 +75,7 @@ h2.section { font-family: var(--body); font-size: 13px; letter-spacing: 2px; tex
 .tabs a[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
 
 /* tiles + tables */
-.tiles { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.tiles { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .tile { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; }
 .tile span { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-2); }
 .tile strong { font-family: var(--body); font-weight: 500; font-size: 34px; line-height: 1.2; margin: 2px 0; }
@@ -92,7 +92,7 @@ td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: t
 tr:last-child td { border-bottom: 0; }
 .num { text-align: right; }
 .st { font-size: 13px; font-weight: 500; white-space: nowrap; }
-.st-yes { color: var(--yes); } .st-no { color: var(--no); } .st-pending { color: var(--pending); }
+.st-yes { color: var(--yes); } .st-maybe { color: #6B4E9B; } .st-no { color: var(--no); } .st-pending { color: var(--pending); }
 .row-actions { white-space: nowrap; text-align: right; }
 .row-actions .btn { margin-left: 4px; }
 

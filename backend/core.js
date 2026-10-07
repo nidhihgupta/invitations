@@ -64,7 +64,7 @@ var InviteCore = (function () {
   function values(list) { return list.map(function (x) { return x.value; }); }
 
   // Bump whenever this file changes, so the host page can tell when the Apps Script copy is out of date.
-  var VERSION = '2026-10-07.1';
+  var VERSION = '2026-10-07.2';
   // The Code.gs version this site expects (Code.gs sets CODE_VERSION).
   var CODE_VERSION = '2026-10-07.1';
 
@@ -133,6 +133,7 @@ var InviteCore = (function () {
   var SETTINGS_DEFAULTS = {
     openLink: true,
     showGuestList: true,
+    allowMaybe: true,
     addressVisibility: 'all', // 'all' | 'accepted'
     notifyHosts: true,
     cohostEmails: '',
@@ -219,12 +220,13 @@ var InviteCore = (function () {
     }
 
     function counts(list) {
-      var c = { yes: 0, no: 0, pending: 0, adults: 0, kids: 0, total: 0, guests: list.length, invited: 0 };
+      var c = { yes: 0, no: 0, maybe: 0, pending: 0, adults: 0, kids: 0, total: 0, maybeTotal: 0, guests: list.length, invited: 0 };
       list.forEach(function (g) {
         var s = g.status || 'pending';
         c[s] = (c[s] || 0) + 1;
         if (g.invitedAt) c.invited++;
         if (s === 'yes') { c.adults += int(g.adults, 1); c.kids += int(g.kids, 0); }
+        if (s === 'maybe') c.maybeTotal += int(g.adults, 1) + int(g.kids, 0);
       });
       c.total = c.adults + c.kids;
       return c;
@@ -235,7 +237,7 @@ var InviteCore = (function () {
         id: ev.id, theme: d.theme, template: d.template, colors: d.colors, text: d.text,
         date: d.date, startTime: d.startTime, endTime: d.endTime, venue: d.venue, address: d.address,
         rsvpBy: d.rsvpBy, closed: closedReason(ev, d),
-        settings: { showGuestList: !!d.settings.showGuestList, customQuestion: d.settings.customQuestion, openLink: !!d.settings.openLink },
+        settings: { showGuestList: !!d.settings.showGuestList, customQuestion: d.settings.customQuestion, openLink: !!d.settings.openLink, allowMaybe: d.settings.allowMaybe !== false },
         addressHidden: false
       };
       if (d.settings.addressVisibility === 'accepted' && !(guest && guest.status === 'yes') && d.address) {
@@ -370,15 +372,15 @@ var InviteCore = (function () {
       var to = hostEmails(ev, d);
       if (!to.length) return;
       var c = counts(guestsOf(ev.id));
-      var verb = g.status === 'yes' ? 'accepted' : 'declined';
-      var party = g.status === 'yes' ? ' (' + int(g.adults, 1) + ' adult' + (int(g.adults, 1) === 1 ? '' : 's') +
+      var verb = g.status === 'yes' ? 'accepted' : g.status === 'maybe' ? 'said maybe' : 'declined';
+      var party = g.status === 'yes' || g.status === 'maybe' ? ' (' + int(g.adults, 1) + ' adult' + (int(g.adults, 1) === 1 ? '' : 's') +
         (int(g.kids, 0) ? ', ' + int(g.kids, 0) + ' kid' + (int(g.kids, 0) === 1 ? '' : 's') : '') + ')' : '';
       var lines = [
         g.name + (changed ? ' changed their reply: ' : ' ') + verb + party + '.',
         g.answer ? (d.settings.customQuestion || 'Answer') + ': ' + g.answer : '',
         g.note ? 'Note: ' + g.note : '',
         '',
-        'So far: ' + c.total + ' attending (' + c.adults + ' adults, ' + c.kids + ' kids), ' + c.no + ' declined, ' + c.pending + ' awaiting.',
+        'So far: ' + c.total + ' attending (' + c.adults + ' adults, ' + c.kids + ' kids), ' + c.no + ' declined, ' + (c.maybe ? c.maybe + ' maybe, ' : '') + c.pending + ' awaiting.',
         '',
         'See all replies: ' + base() + '/host.html#/e/' + ev.id
       ].filter(function (l, i) { return l !== '' || i === 3 || i === 5; });
@@ -451,12 +453,13 @@ var InviteCore = (function () {
       if (req.hp) return { guestId: '', guest: null }; // honeypot: quietly ignore bots
       var why = closedReason(ev, d);
       if (why) throw fail('closed', why === 'past' ? 'This event has already happened.' : 'Replies are closed for this event.');
-      var attending = req.attending === 'yes' ? 'yes' : req.attending === 'no' ? 'no' : '';
+      var attending = ['yes', 'no', 'maybe'].indexOf(req.attending) >= 0 ? req.attending : '';
+      if (attending === 'maybe' && d.settings.allowMaybe === false) attending = '';
       if (!attending) throw fail('invalid', 'Please choose whether you can attend.');
       var name = str(req.name, 100);
       if (!name) throw fail('invalid', 'Please enter your name.');
       var adults = 0, kids = 0;
-      if (attending === 'yes') {
+      if (attending === 'yes' || attending === 'maybe') {
         adults = int(req.adults, 1); kids = int(req.kids, 0);
         if (adults < 1) throw fail('invalid', 'Please count at least one adult.');
         if (kids < 0) kids = 0;
@@ -471,7 +474,7 @@ var InviteCore = (function () {
       if (req.g) {
         guest = findGuest(str(req.g));
         if (!guest || guest.eventId !== ev.id) throw fail('not_found');
-        changed = guest.status === 'yes' || guest.status === 'no';
+        changed = ['yes', 'no', 'maybe'].indexOf(guest.status) >= 0;
         store.update('Guests', 'id', guest.id, patch);
       } else {
         if (!d.settings.openLink) throw fail('not_found');
@@ -486,7 +489,7 @@ var InviteCore = (function () {
           return (email && String(g.email).toLowerCase() === email) || (mobile && digits(g.mobile) === digits(mobile));
         })[0];
         if (guest) {
-          changed = guest.status === 'yes' || guest.status === 'no';
+          changed = ['yes', 'no', 'maybe'].indexOf(guest.status) >= 0;
           store.update('Guests', 'id', guest.id, patch);
         } else {
           guest = {
@@ -625,9 +628,9 @@ var InviteCore = (function () {
       var name = str(g.name, 100), email = str(g.email, 200).toLowerCase(), mobile = str(g.mobile, 40);
       checkContact(name, email, mobile);
       var patch = { name: name, email: email, mobile: mobile };
-      if (g.status === 'yes' || g.status === 'no' || g.status === 'pending') {
+      if (['yes', 'no', 'maybe', 'pending'].indexOf(g.status) >= 0) {
         patch.status = g.status;
-        if (g.status === 'yes') {
+        if (g.status === 'yes' || g.status === 'maybe') {
           var a = Math.max(1, int(g.adults, 1)), k = Math.max(0, int(g.kids, 0));
           if (a + k > MAX_PARTY) throw fail('invalid', 'Party size can be at most ' + MAX_PARTY + '.');
           patch.adults = String(a); patch.kids = String(k);
