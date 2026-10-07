@@ -81,7 +81,7 @@
       }
       return viewEvents();
     };
-    var p = S.me ? Promise.resolve() : api('host.me').then(function (res) { S.me = res; });
+    var p = S.me ? Promise.resolve() : api('host.me').then(function (res) { S.me = res; S.meAt = Date.now(); });
     p.then(go).catch(function (err) {
       if (err.code !== 'unauthorized') page('<div class="empty"><h2>Could not load</h2><p>' + esc(err.message) + '</p><button class="btn" onclick="location.reload()">Try again</button></div>');
     });
@@ -145,8 +145,10 @@
 
   function viewEvents() {
     loading();
-    api('host.me').then(function (res) {
-      S.me = res;
+    // Reuse the answer the page just loaded with, instead of asking the backend twice.
+    var fresh = S.me && S.meAt && Date.now() - S.meAt < 5000;
+    (fresh ? Promise.resolve(S.me) : api('host.me')).then(function (res) {
+      S.me = res; S.meAt = Date.now();
       function card(s) {
         var p = InviteCore.parseYmd(s.date) || {};
         return '<a class="ev-card" href="#/e/' + encodeURIComponent(s.id) + '">' +

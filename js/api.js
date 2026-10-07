@@ -6,20 +6,39 @@ window.Api = (function () {
   var DEMO_KEY = 'invitations-demo-db';
   var demo = !window.Config.API_URL || /[?&]demo=1\b/.test(location.search);
 
-  function call(action, payload) {
-    var req = Object.assign({ action: action }, payload || {});
-    var p = demo ? demoCall(req) : fetch(window.Config.API_URL, {
+  // Requests that only read data. Google's web app occasionally answers with a transient
+  // 404/5xx (often for a few minutes after a redeploy), so these are retried quietly.
+  // Requests that change data are never retried, since a retry could apply them twice.
+  var READS = { 'invite.get': 1, 'host.me': 1, 'host.event': 1, 'host.hosts': 1, 'host.previewEmail': 1 };
+
+  function send(req) {
+    return fetch(window.Config.API_URL, {
       method: 'POST',
       // text/plain keeps this a "simple" request, so Apps Script needs no CORS preflight.
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(req),
       redirect: 'follow'
     }).then(function (r) {
-      if (!r.ok) throw Object.assign(new Error('The server returned ' + r.status + '.'), { code: 'network' });
+      if (!r.ok) throw Object.assign(new Error('The server returned ' + r.status + '.'), { code: 'network', status: r.status });
       return r.json();
     }, function () {
       throw Object.assign(new Error('Could not reach the server. Check your connection and try again.'), { code: 'network' });
     });
+  }
+
+  function sendWithRetry(req, attempt) {
+    return send(req).catch(function (err) {
+      var transient = err.code === 'network' && (!err.status || err.status === 404 || err.status >= 500);
+      if (!READS[req.action] || !transient || attempt >= 3) throw err;
+      return new Promise(function (resolve) { setTimeout(resolve, attempt * 700); }).then(function () {
+        return sendWithRetry(req, attempt + 1);
+      });
+    });
+  }
+
+  function call(action, payload) {
+    var req = Object.assign({ action: action }, payload || {});
+    var p = demo ? demoCall(req) : sendWithRetry(req, 1);
     return p.then(function (res) {
       if (!res || !res.ok) {
         throw Object.assign(new Error(res && res.message || 'Something went wrong.'), { code: res && res.error || 'server' });
