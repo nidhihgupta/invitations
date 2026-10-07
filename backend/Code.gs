@@ -9,7 +9,7 @@
 var DEFAULT_SITE_URL = 'https://nidhihgupta.github.io/invitations';
 
 // Bump with each change to this file; the host page warns when it doesn't match the site.
-var CODE_VERSION_GS = '2026-10-06.2';
+var CODE_VERSION_GS = '2026-10-07.1';
 
 function doPost(e) {
   var req;
@@ -150,6 +150,20 @@ SheetStore.prototype.insert = function (table, obj) {
   t.headers.forEach(function (h, i) { o[h] = row[i]; });
   t.rows.push(o);
   return o;
+};
+
+SheetStore.prototype.insertMany = function (table, objs) {
+  if (!objs.length) return [];
+  var t = this.load(table), self = this;
+  var rows = objs.map(function (o) { return self.toRow(t, o); });
+  t.sheet.getRange(t.rows.length + 2, 1, rows.length, t.headers.length).setNumberFormat('@').setValues(rows);
+  this.forget(table);
+  return rows.map(function (row) {
+    var o = {};
+    t.headers.forEach(function (h, i) { o[h] = row[i]; });
+    t.rows.push(o);
+    return o;
+  });
 };
 
 SheetStore.prototype.update = function (table, idField, id, patch) {

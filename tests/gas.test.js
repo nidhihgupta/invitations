@@ -164,3 +164,16 @@ test('host.me reports both backend file versions', () => {
   assert.strictEqual(me.version, Core.VERSION);
   assert.strictEqual(me.codeVersion, Core.CODE_VERSION, 'Code.gs and core.js versions agree');
 });
+
+test('pasting a guest list writes all rows at once', () => {
+  const g = loadGas();
+  g.ctx.setup();
+  const key = g.ss.sheets.Hosts.grid[1][0];
+  const ev = g.post({ action: 'host.saveEvent', k: key, event: { data: { theme: 'diwali', text: { title: 'P' }, date: '2026-11-07', settings: {}, email: {} } } });
+  const text = 'Aditya Bhasin, a@x.co\nJacques, j@x.co, (408) 386-6262\nGemma, (650) 678-3476\nJacques again, j@x.co\nNo contact';
+  const r = g.post({ action: 'host.addGuests', k: key, e: ev.id, text });
+  assert.strictEqual(r.added, 3);
+  assert.strictEqual(r.errors.length, 2, 'duplicate within the paste and missing contact are reported');
+  assert.deepStrictEqual(g.ss.sheets.Guests.grid.slice(1).map((row) => row[2]), ['Aditya Bhasin', 'Jacques', 'Gemma']);
+  assert.strictEqual(g.ss.sheets.Guests.grid[3][4], '(650) 678-3476');
+});

@@ -64,9 +64,9 @@ var InviteCore = (function () {
   function values(list) { return list.map(function (x) { return x.value; }); }
 
   // Bump whenever this file changes, so the host page can tell when the Apps Script copy is out of date.
-  var VERSION = '2026-10-06.2';
+  var VERSION = '2026-10-07.1';
   // The Code.gs version this site expects (Code.gs sets CODE_VERSION).
-  var CODE_VERSION = '2026-10-06.2';
+  var CODE_VERSION = '2026-10-07.1';
 
   var MAX_PARTY = 10;
 
@@ -650,13 +650,18 @@ var InviteCore = (function () {
     actions['host.addGuests'] = function (req) {
       var h = auth(req), ev = eventFor(h, str(req.e));
       var parsed = parseGuestLines(req.text), added = 0;
-      var existing = guestsOf(ev.id);
+      var existing = guestsOf(ev.id), rows = [];
       parsed.guests.forEach(function (g) {
         var dup = existing.filter(function (x) { return (g.email && x.email === g.email) || (g.mobile && x.mobile === g.mobile); })[0];
         if (dup) { parsed.errors.push({ line: g.line, message: g.name + ' is already on the list.' }); return; }
-        store.insert('Guests', blankGuest(ev.id, g.name, g.email, g.mobile));
-        added++;
+        var row = blankGuest(ev.id, g.name, g.email, g.mobile);
+        rows.push(row);
+        existing.push(row);
       });
+      // One write for the whole list (a Sheet write per guest is slow).
+      if (store.insertMany) store.insertMany('Guests', rows);
+      else rows.forEach(function (r) { store.insert('Guests', r); });
+      added = rows.length;
       return { added: added, errors: parsed.errors };
     };
 
