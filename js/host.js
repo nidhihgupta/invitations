@@ -52,6 +52,12 @@
     root.querySelectorAll(sel).forEach(function (el) { el.addEventListener(type, function (e) { fn(e, el); }); });
   }
 
+  // Warn only when the Apps Script is older than this page. If it is newer, the browser is
+  // simply showing a cached copy of the site, which fixes itself on the next refresh.
+  function behind(me) {
+    return String(me.version || '') < InviteCore.VERSION || String(me.codeVersion || '') < InviteCore.CODE_VERSION;
+  }
+
   function first(name) { return String(name || '').split(/[\s&]+/)[0] || name; }
 
   /* ---------- routing ---------- */
@@ -97,7 +103,7 @@
       '<header class="top"><a class="brand" href="#/">Invitations</a><nav>' +
       '<a href="#/">Events</a>' + (owner ? '<a href="#/hosts">Hosts</a>' : '') + (Api.demo ? '<a href="#/outbox">Outbox</a>' : '') +
       '</nav>' + (me ? '<span class="me">' + esc(me.name) + '</span>' : '') + '</header>' +
-      (S.me && !Api.demo && (S.me.version !== InviteCore.VERSION || S.me.codeVersion !== InviteCore.CODE_VERSION) ? '<div class="demo warn-bar"><strong>Your Apps Script is out of date.</strong> ' +
+      (S.me && !Api.demo && behind(S.me) ? '<div class="demo warn-bar"><strong>Your Apps Script is out of date.</strong> ' +
         'Some features won’t work until you update it: paste the latest <a href="https://raw.githubusercontent.com/nidhihgupta/invitations/main/backend/core.js" target="_blank" rel="noopener">core.js</a> into the <em>Core</em> file and ' +
         '<a href="https://raw.githubusercontent.com/nidhihgupta/invitations/main/backend/Code.gs" target="_blank" rel="noopener">Code.gs</a> into <em>Code.gs</em>, ' +
         'then Deploy → Manage deployments → ✏️ → Version: New version → Deploy. ' +
